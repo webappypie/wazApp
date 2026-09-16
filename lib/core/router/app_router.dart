@@ -10,6 +10,8 @@ import 'package:go_router/go_router.dart';
 
 import '../di/providers.dart';
 import '../../features/home/presentation/home_screen.dart';
+import '../../features/clean/domain/action_models.dart';
+import '../../features/clean/presentation/cleanup_success_screen.dart';
 import '../../features/clean/presentation/clean_screen.dart';
 import '../../features/clean/presentation/category_screen.dart';
 import '../../features/clean/presentation/duplicates_screen.dart';
@@ -47,6 +49,7 @@ class AppRoutes {
   static const largeVideos = '/clean/large-videos';
   static const screenshots = '/clean/screenshots';
   static const oldMedia = '/clean/old-media';
+  static const cleanupSuccess = '/clean/success';
   static const organize = '/organize';
   static const bin = '/bin';
   static const settings = '/settings';
@@ -133,6 +136,13 @@ final appRouter = GoRouter(
                 GoRoute(
                   path: 'old-media',
                   builder: (context, state) => const OldMediaScreen(),
+                ),
+                GoRoute(
+                  path: 'success',
+                  builder: (context, state) => CleanupSuccessScreen(
+                    summary: state.extra as CleanupSessionSummary? ??
+                        const CleanupSessionSummary(),
+                  ),
                 ),
               ],
             ),

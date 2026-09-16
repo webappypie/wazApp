@@ -1,7 +1,7 @@
 # Progress — WappTidy
 
 ## Status
-Current phase: 7 (Not started)
+Current phase: 7 (Done)
 Last updated: 2026-09-17
 
 ## Phase log
@@ -14,7 +14,7 @@ Last updated: 2026-09-17
 | 4 | Home dashboard | Done | 71/71 tests; §8.1 health score; §8.3 no-double-count; hero card; opportunity cards |
 | 5 | Category framework | Done | 82/82 tests; generic CategoryScreen; sort/filter; grid/list; preview; multi-select |
 | 6 | v1 categories | Done | 89/89 tests; Kotlin 2-stage hash duplicates; large videos; screenshots heuristics; old media |
-| 7 | Actions and Bin | Not started | |
+| 7 | Actions and Bin | Done | 100/100 tests; Scoped Storage delete dialogs; write-first Move/Copy; Protect guard; ad-free Bin |
 | 8 | Settings, ads, premium, polish | Not started | |
 
 ## Known issues / carried debt
@@ -25,4 +25,5 @@ Last updated: 2026-09-17
 - Performance §5.5 budgets (45s full / 8s incremental / 350MB RAM) must be measured on real device with 15,000+ files before Phase 8 sign-off.
 
 ## Next action
-Start Phase 7 (Actions and Bin): implement Delete, Move to folder, Copy to folder, Protect/Unprotect, custom Bin with 30-day auto-purge, Undo snackbar, SAF write permissions, and irreversible action warnings per PRD §6.
+Start Phase 8 (Settings, Ads, Premium, Polish): implement SettingsScreen, AdMob integration (native, banner, interstitial with frequency capping), In-App Purchases (RevenueCat / in_app_purchase), premium entitlements (unlimited cleanup, ad-free), and release polish per PRD §7, §9, and §10.
+

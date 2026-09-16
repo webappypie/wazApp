@@ -21,9 +21,11 @@ class ScreenshotsDataSource extends CategoryDataSource {
     final List<CategoryItem> candidateItems;
 
     if (testItems != null) {
-      candidateItems = testItems!;
+      candidateItems = testItems!.where((item) => !item.isProtected).toList();
     } else {
-      final rows = await db!.select(db!.mediaItems).get();
+      final rows = await (db!.select(db!.mediaItems)
+            ..where((tbl) => tbl.isProtected.equals(false)))
+          .get();
       candidateItems = rows.map((r) => CategoryItem(
         id: r.id.toString(),
         contentUri: r.contentUri,

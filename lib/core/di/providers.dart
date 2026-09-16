@@ -10,6 +10,7 @@
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../features/clean/data/media_action_coordinator.dart';
 import '../database/app_database.dart';
 import '../services/ads/ads_service.dart';
 import '../services/ads/fake_ads_service.dart';
@@ -74,6 +75,13 @@ final backgroundTaskServiceProvider = Provider<BackgroundTaskService>(
 final onboardingServiceProvider = Provider<OnboardingService>(
   (ref) => RealOnboardingService(),
 );
+
+final mediaActionCoordinatorProvider = Provider<MediaActionCoordinator>((ref) {
+  return MediaActionCoordinator(
+    mediaAccessService: ref.watch(mediaAccessServiceProvider),
+    db: ref.watch(appDatabaseProvider),
+  );
+});
 
 // ---------------------------------------------------------------------------
 // Derived state

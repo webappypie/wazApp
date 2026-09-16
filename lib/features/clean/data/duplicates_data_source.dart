@@ -33,7 +33,9 @@ class DuplicatesDataSource extends CategoryDataSource {
       return _computeInMemoryDuplicates(testItems!);
     }
 
-    final rows = await db!.select(db!.mediaItems).get();
+    final rows = await (db!.select(db!.mediaItems)
+          ..where((tbl) => tbl.isProtected.equals(false)))
+        .get();
     final candidateItems = rows.map((r) => CategoryItem(
       id: r.id.toString(),
       contentUri: r.contentUri,
@@ -131,9 +133,12 @@ class DuplicatesDataSource extends CategoryDataSource {
   }
 
   List<CategoryItem> _computeInMemoryDuplicates(List<CategoryItem> items) {
+    // REQ-ACT-05: Exclude protected items
+    final activeItems = items.where((i) => !i.isProtected).toList();
+
     // Stage 1: Bucket by size
     final bySize = <int, List<CategoryItem>>{};
-    for (final item in items) {
+    for (final item in activeItems) {
       if (item.sizeBytes > 0) {
         bySize.putIfAbsent(item.sizeBytes, () => []).add(item);
       }

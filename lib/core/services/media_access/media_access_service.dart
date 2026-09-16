@@ -8,6 +8,7 @@
 // This interface is the single seam between Flutter UI/domain code and the
 // Android MediaStore platform channel. It is fully mockable for tests.
 
+import '../../../../features/clean/domain/action_models.dart';
 import 'media_item.dart';
 
 /// Permission state for media access.
@@ -93,4 +94,18 @@ abstract interface class MediaAccessService {
 
   /// Restore trashed items (REQ-BIN-02).
   Future<List<String>> restoreItems(List<String> contentUris);
+
+  /// Permanently delete a batch of items (REQ-BIN-02).
+  Future<List<String>> deletePermanently(List<String> contentUris);
+
+  /// Move, copy, or archive items with byte verification (REQ-ACT-03, REQ-ACT-04, REQ-ACT-06).
+  Future<FileActionResult> moveOrCopyItems({
+    required List<MediaItem> items,
+    required bool isMove,
+    bool isArchive = false,
+    String? customDestination,
+  });
+
+  /// Read Android SDK API level (e.g. 33 for Android 13).
+  Future<int> getAndroidVersion();
 }

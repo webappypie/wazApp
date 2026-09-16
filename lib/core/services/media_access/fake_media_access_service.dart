@@ -6,6 +6,7 @@
 
 import 'dart:async';
 
+import '../../../../features/clean/domain/action_models.dart';
 import 'media_access_service.dart';
 import 'media_item.dart';
 
@@ -19,8 +20,26 @@ final class FakeMediaAccessService implements MediaAccessService {
   /// Trashed items returned by queryTrashedItems.
   List<MediaItem> trashedItems = [];
 
-  /// If true, trashItems / restoreItems throw to simulate permission loss.
+  /// Moved items recorded during move operations.
+  List<MediaItem> movedItems = [];
+
+  /// Copied items recorded during copy operations.
+  List<MediaItem> copiedItems = [];
+
+  /// Archived items recorded during archive operations.
+  List<MediaItem> archivedItems = [];
+
+  /// Simulated Android API level (30+ for Android 11+ / Trash, <= 29 for legacy delete).
+  int simulatedApiLevel = 33;
+
+  /// If true, operations throw to simulate permission loss mid-operation (REQ-ACT-04).
   bool simulatePermissionLossMidOperation = false;
+
+  /// If true, simulate destination write failure (REQ-ACT-03).
+  bool simulateWriteFailure = false;
+
+  /// If true, simulate partial batch failure (REQ-ACT-04).
+  bool simulatePartialFailure = false;
 
   int _generation = 1;
 
@@ -37,7 +56,6 @@ final class FakeMediaAccessService implements MediaAccessService {
 
   @override
   Stream<List<MediaItem>> queryMedia(MediaQueryOptions options) async* {
-    // Yield in one batch. Real impl yields in smaller batches for progress.
     yield items;
   }
 
@@ -52,7 +70,9 @@ final class FakeMediaAccessService implements MediaAccessService {
     if (simulatePermissionLossMidOperation) {
       throw Exception('Permission lost mid-operation (simulated)');
     }
+    final toTrash = items.where((i) => contentUris.contains(i.contentUri)).toList();
     items.removeWhere((i) => contentUris.contains(i.contentUri));
+    trashedItems.addAll(toTrash);
     return contentUris;
   }
 
@@ -63,6 +83,79 @@ final class FakeMediaAccessService implements MediaAccessService {
 
   @override
   Future<List<String>> restoreItems(List<String> contentUris) async {
+    final toRestore = trashedItems.where((i) => contentUris.contains(i.contentUri)).toList();
+    trashedItems.removeWhere((i) => contentUris.contains(i.contentUri));
+    items.addAll(toRestore);
     return contentUris;
   }
+
+  @override
+  Future<List<String>> deletePermanently(List<String> contentUris) async {
+    trashedItems.removeWhere((i) => contentUris.contains(i.contentUri));
+    items.removeWhere((i) => contentUris.contains(i.contentUri));
+    return contentUris;
+  }
+
+  @override
+  Future<FileActionResult> moveOrCopyItems({
+    required List<MediaItem> items,
+    required bool isMove,
+    bool isArchive = false,
+    String? customDestination,
+  }) async {
+    if (simulatePermissionLossMidOperation) {
+      throw Exception('Permission lost mid-operation (simulated)');
+    }
+
+    if (simulateWriteFailure) {
+      // REQ-ACT-03: write fails -> destination removed, source untouched!
+      return FileActionResult(
+        failedIds: items.map((e) => e.mediaId.toString()).toList(),
+        failureReasons: {
+          for (final item in items) item.mediaId.toString(): 'Simulated destination write failure (byte mismatch)',
+        },
+      );
+    }
+
+    final succeededIds = <String>[];
+    final failedIds = <String>[];
+    final failureReasons = <String, String>{};
+    var bytesProcessed = 0;
+
+    for (var i = 0; i < items.length; i++) {
+      final item = items[i];
+      final idStr = item.mediaId.toString();
+      if (simulatePartialFailure && i >= items.length ~/ 2) {
+        failedIds.add(idStr);
+        failureReasons[idStr] = 'Storage full / write failed mid-batch';
+        continue;
+      }
+
+      succeededIds.add(idStr);
+      bytesProcessed += item.sizeBytes;
+
+      if (isArchive) {
+        archivedItems.add(item);
+      } else if (isMove) {
+        movedItems.add(item);
+      } else {
+        copiedItems.add(item);
+      }
+
+      // REQ-ACT-03: Remove from source only after verified write succeeded
+      if (isMove) {
+        this.items.removeWhere((it) => it.mediaId == item.mediaId);
+      }
+    }
+
+    return FileActionResult(
+      succeededIds: succeededIds,
+      failedIds: failedIds,
+      failureReasons: failureReasons,
+      totalBytesProcessed: bytesProcessed,
+    );
+  }
+
+  @override
+  Future<int> getAndroidVersion() async => simulatedApiLevel;
 }

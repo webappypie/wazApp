@@ -24,13 +24,14 @@ class LargeVideosDataSource extends CategoryDataSource {
   Future<List<CategoryItem>> getItems() async {
     if (testItems != null) {
       return testItems!
-          .where((item) => item.isVideo && item.sizeBytes >= minSizeBytes)
+          .where((item) => !item.isProtected && item.isVideo && item.sizeBytes >= minSizeBytes)
           .toList();
     }
 
     final database = db!;
     final query = database.select(database.mediaItems)
       ..where((tbl) =>
+          tbl.isProtected.equals(false) &
           tbl.mimeType.like('video/%') &
           tbl.sizeBytes.isBiggerOrEqualValue(minSizeBytes));
 

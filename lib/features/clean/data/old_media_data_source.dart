@@ -29,12 +29,16 @@ class OldMediaDataSource extends CategoryDataSource {
 
     if (testItems != null) {
       candidateItems = testItems!
-          .where((item) => item.dateModifiedSec <= cutoffSec || item.dateAddedSec <= cutoffSec)
+          .where((item) =>
+              !item.isProtected &&
+              (item.dateModifiedSec <= cutoffSec || item.dateAddedSec <= cutoffSec))
           .toList();
     } else {
       final database = db!;
       final query = database.select(database.mediaItems)
-        ..where((tbl) => tbl.dateModifiedSec.isSmallerOrEqualValue(cutoffSec));
+        ..where((tbl) =>
+            tbl.isProtected.equals(false) &
+            tbl.dateModifiedSec.isSmallerOrEqualValue(cutoffSec));
       final rows = await query.get();
       candidateItems = rows.map((r) => CategoryItem(
         id: r.id.toString(),

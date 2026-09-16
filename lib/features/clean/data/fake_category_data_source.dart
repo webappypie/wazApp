@@ -99,7 +99,6 @@ class FakeCategoryDataSource extends CategoryDataSource {
         sourceApp: 'com.whatsapp',
         width: 4032,
         height: 3024,
-        isProtected: true,
       ),
     ];
   }

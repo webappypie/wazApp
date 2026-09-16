@@ -5,8 +5,10 @@
 // grid/list toggle, multi-select, live running total, preview, and BottomActionBar.
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/design/tokens.dart';
+import '../../../core/di/providers.dart';
 import '../../../core/widgets/action_widgets.dart';
 import '../../../core/widgets/app_scaffold.dart';
 import '../../../core/widgets/filter_chip.dart';
@@ -15,9 +17,10 @@ import '../../../core/widgets/partial_access_banner.dart';
 import '../../../core/widgets/state_widgets.dart';
 import '../domain/category_data_source.dart';
 import '../domain/category_models.dart';
+import 'cleanup_success_screen.dart';
 import 'media_preview_sheet.dart';
 
-class CategoryScreen extends StatefulWidget {
+class CategoryScreen extends ConsumerStatefulWidget {
   const CategoryScreen({
     super.key,
     required this.title,
@@ -50,10 +53,10 @@ class CategoryScreen extends StatefulWidget {
   final String emptyBody;
 
   @override
-  State<CategoryScreen> createState() => _CategoryScreenState();
+  ConsumerState<CategoryScreen> createState() => _CategoryScreenState();
 }
 
-class _CategoryScreenState extends State<CategoryScreen> {
+class _CategoryScreenState extends ConsumerState<CategoryScreen> {
   late CategoryViewMode _viewMode;
   late CategorySortOption _activeSort;
   late List<CategoryFilterOption> _filters;
@@ -210,43 +213,236 @@ class _CategoryScreenState extends State<CategoryScreen> {
   // Bottom action bar handlers
   // ---------------------------------------------------------------------------
 
-  void _handleMove() {
+  Future<void> _handleMove() async {
     final selected = _selectedItems;
     if (selected.isEmpty) return;
-    widget.onMove?.call(selected);
+
+    if (widget.onMove != null) {
+      widget.onMove!(selected);
+      return;
+    }
+
+    final action = await showModalBottomSheet<String>(
+      context: context,
+      shape: const RoundedRectangleBorder(borderRadius: AppRadius.bottomSheetRadius),
+      builder: (ctx) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: const Icon(Icons.archive_outlined),
+                title: const Text('Archive Media'),
+                subtitle: const Text('Organize into Media Archive/<year>/<type>'),
+                onTap: () => Navigator.of(ctx).pop('archive'),
+              ),
+              ListTile(
+                leading: const Icon(Icons.drive_file_move_outlined),
+                title: const Text('Move to Organized Folder'),
+                subtitle: const Text('Move to Pictures/WappTidy Organized'),
+                onTap: () => Navigator.of(ctx).pop('move'),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+
+    if (action == null || !mounted) return;
+
+    final coordinator = ref.read(mediaActionCoordinatorProvider);
+    final result = await coordinator.moveOrCopySelected(
+      items: selected,
+      isMove: true,
+      isArchive: action == 'archive',
+    );
+
+    if (!mounted) return;
+    if (result.succeededCount > 0) {
+      setState(() {
+        final movedIds = result.succeededIds.toSet();
+        _allItems.removeWhere((item) => movedIds.contains(item.id));
+        _selectedIds.removeAll(movedIds);
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Moved ${result.succeededCount} items successfully.')),
+      );
+    }
+    if (result.failedCount > 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('${result.failedCount} items failed to move.'),
+          backgroundColor: kColorDestructive,
+        ),
+      );
+    }
   }
 
-  void _handleCopy() {
+  Future<void> _handleCopy() async {
     final selected = _selectedItems;
     if (selected.isEmpty) return;
-    widget.onCopy?.call(selected);
+
+    if (widget.onCopy != null) {
+      widget.onCopy!(selected);
+      return;
+    }
+
+    final coordinator = ref.read(mediaActionCoordinatorProvider);
+    final result = await coordinator.moveOrCopySelected(
+      items: selected,
+      isMove: false,
+    );
+
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          result.isSuccess
+              ? 'Copied ${result.succeededCount} items to Pictures/WappTidy Organized.'
+              : 'Copied ${result.succeededCount} items (${result.failedCount} failed).',
+        ),
+      ),
+    );
   }
 
-  void _handleProtect() {
+  Future<void> _handleProtect() async {
     final selected = _selectedItems;
     if (selected.isEmpty) return;
-    widget.onProtect?.call(selected);
+
+    if (widget.onProtect != null) {
+      widget.onProtect!(selected);
+      return;
+    }
+
+    final coordinator = ref.read(mediaActionCoordinatorProvider);
+    final allProtected = selected.every((item) => item.isProtected);
+    final newProtection = !allProtected;
+
+    try {
+      await coordinator.setProtection(selected, newProtection);
+      if (!mounted) return;
+      setState(() {
+        final targetIds = selected.map((e) => e.id).toSet();
+        _allItems = _allItems.map((item) {
+          if (targetIds.contains(item.id)) {
+            return CategoryItem(
+              id: item.id,
+              contentUri: item.contentUri,
+              displayName: item.displayName,
+              mimeType: item.mimeType,
+              sizeBytes: item.sizeBytes,
+              dateAddedSec: item.dateAddedSec,
+              dateModifiedSec: item.dateModifiedSec,
+              bucketName: item.bucketName,
+              sourceApp: item.sourceApp,
+              width: item.width,
+              height: item.height,
+              durationMs: item.durationMs,
+              isProtected: newProtection,
+              badgeLabel: item.badgeLabel,
+              groupTitle: item.groupTitle,
+              isOriginal: item.isOriginal,
+            );
+          }
+          return item;
+        }).toList();
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            '${selected.length} items ${newProtection ? "marked as protected" : "unprotected"}',
+          ),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error updating protection: $e')),
+      );
+    }
   }
 
   Future<void> _handleDelete() async {
     final selected = _selectedItems;
     if (selected.isEmpty) return;
 
+    // REQ-ACT-05: Protected items require explicit unprotect before deletion
+    final hasProtected = selected.any((item) => item.isProtected);
+    if (hasProtected) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Protected items cannot be deleted. Unprotect first.'),
+          backgroundColor: kColorDestructive,
+        ),
+      );
+      return;
+    }
+
+    final String title;
+    final String body;
+    if (widget.onDelete != null) {
+      title = 'Delete ${selected.length} items?';
+      body = 'These files will be moved to the Recycle Bin.';
+    } else {
+      int apiLevel = 33;
+      final coordinator = ref.read(mediaActionCoordinatorProvider);
+      try {
+        apiLevel = await coordinator.getAndroidVersion();
+      } catch (_) {}
+
+      if (!mounted) return;
+
+      if (apiLevel >= 30) {
+        title = 'Move ${selected.length} items to Recycle Bin?';
+        body = 'Items in the Recycle Bin are permanently deleted by Android after ~30 days.';
+      } else {
+        title = 'Permanently delete ${selected.length} items?';
+        body = '⚠️ This deletion is permanent! Your device version does not support a Recycle Bin.';
+      }
+    }
+
     final confirmed = await ConfirmationSheet.show(
       context,
-      title: 'Delete ${selected.length} items?',
-      body: 'These files will be moved to the Recycle Bin.',
+      title: title,
+      body: body,
       confirmLabel: 'Delete',
       isDestructive: true,
     );
 
     if (confirmed == true && mounted) {
-      widget.onDelete?.call(selected);
-      setState(() {
-        final deletedIds = selected.map((e) => e.id).toSet();
-        _allItems.removeWhere((item) => deletedIds.contains(item.id));
-        _selectedIds.removeAll(deletedIds);
-      });
+      if (widget.onDelete != null) {
+        widget.onDelete!(selected);
+        setState(() {
+          final deletedIds = selected.map((e) => e.id).toSet();
+          _allItems.removeWhere((item) => deletedIds.contains(item.id));
+          _selectedIds.removeAll(deletedIds);
+        });
+      } else {
+        try {
+          final coordinator = ref.read(mediaActionCoordinatorProvider);
+          final summary = await coordinator.trashSelected(selected);
+          if (!mounted) return;
+          setState(() {
+            final deletedIds = selected.map((e) => e.id).toSet();
+            _allItems.removeWhere((item) => deletedIds.contains(item.id));
+            _selectedIds.removeAll(deletedIds);
+          });
+          Navigator.of(context).push(
+            MaterialPageRoute<void>(
+              builder: (_) => CleanupSuccessScreen(summary: summary),
+            ),
+          );
+        } catch (e) {
+          if (!mounted) return;
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Failed to delete items: $e'),
+              backgroundColor: kColorDestructive,
+            ),
+          );
+        }
+      }
     }
   }
 

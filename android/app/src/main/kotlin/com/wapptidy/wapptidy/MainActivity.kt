@@ -27,10 +27,12 @@ class MainActivity : FlutterActivity() {
         private const val METHOD_CHANNEL    = "com.wapptidy/media_indexer"
         private const val EVENT_CHANNEL     = "com.wapptidy/media_indexer_events"
         private const val DUPLICATE_CHANNEL = "com.wapptidy/duplicate_detector"
+        private const val ACTIONS_CHANNEL   = "com.wapptidy/media_actions"
     }
 
     private lateinit var mediaIndexer: MediaIndexer
     private lateinit var duplicateDetector: DuplicateDetector
+    private lateinit var mediaActionHandler: MediaActionHandler
     private val scope = CoroutineScope(Dispatchers.Main)
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
@@ -38,6 +40,7 @@ class MainActivity : FlutterActivity() {
 
         mediaIndexer = MediaIndexer(applicationContext)
         duplicateDetector = DuplicateDetector(applicationContext)
+        mediaActionHandler = MediaActionHandler(applicationContext) { this }
 
         // --- MethodChannel: indexer control commands ---
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, METHOD_CHANNEL)
@@ -115,6 +118,57 @@ class MainActivity : FlutterActivity() {
                     result.notImplemented()
                 }
             }
+
+        // --- MethodChannel: media actions (Phase 7: REQ-ACT-01..07, REQ-BIN-01..05) ---
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, ACTIONS_CHANNEL)
+            .setMethodCallHandler { call, result ->
+                when (call.method) {
+                    "getAndroidVersion" -> {
+                        result.success(mediaActionHandler.getAndroidVersion())
+                    }
+                    "trashItems" -> {
+                        val uris = call.argument<List<String>>("uris") ?: emptyList()
+                        val isTrash = call.argument<Boolean>("isTrash") ?: true
+                        mediaActionHandler.trashItems(uris, isTrash, result)
+                    }
+                    "deletePermanently" -> {
+                        val uris = call.argument<List<String>>("uris") ?: emptyList()
+                        mediaActionHandler.deletePermanently(uris, result)
+                    }
+                    "moveOrCopyItems" -> {
+                        val rawItems = call.argument<List<Map<String, Any>>>("items") ?: emptyList()
+                        val isMove = call.argument<Boolean>("isMove") ?: false
+                        val isArchive = call.argument<Boolean>("isArchive") ?: false
+                        val customDestination = call.argument<String>("customDestination")
+                        scope.launch {
+                            try {
+                                val outcome = mediaActionHandler.moveOrCopyItems(
+                                    rawItems, isMove, isArchive, customDestination
+                                )
+                                result.success(outcome)
+                            } catch (e: Exception) {
+                                result.error("ACTION_FAILED", e.message, null)
+                            }
+                        }
+                    }
+                    "queryTrashedItems" -> {
+                        scope.launch {
+                            try {
+                                val trashed = mediaActionHandler.queryTrashedItems()
+                                result.success(trashed)
+                            } catch (e: Exception) {
+                                result.error("QUERY_TRASH_FAILED", e.message, null)
+                            }
+                        }
+                    }
+                    else -> result.notImplemented()
+                }
+            }
+    }
+
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: android.content.Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        mediaActionHandler.handleActivityResult(requestCode, resultCode, data)
     }
 
     override fun onDestroy() {
