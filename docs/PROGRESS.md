@@ -1,7 +1,7 @@
 # Progress — WappTidy
 
 ## Status
-Current phase: 7 (Done)
+Current phase: 8 (Done)
 Last updated: 2026-09-17
 
 ## Phase log
@@ -15,7 +15,7 @@ Last updated: 2026-09-17
 | 5 | Category framework | Done | 82/82 tests; generic CategoryScreen; sort/filter; grid/list; preview; multi-select |
 | 6 | v1 categories | Done | 89/89 tests; Kotlin 2-stage hash duplicates; large videos; screenshots heuristics; old media |
 | 7 | Actions and Bin | Done | 100/100 tests; Scoped Storage delete dialogs; write-first Move/Copy; Protect guard; ad-free Bin |
-| 8 | Settings, ads, premium, polish | Not started | |
+| 8 | Settings, ads, premium, polish | Done | 128/128 tests; Grouped settings; Theme switching; AdManager REQ-ADS-01..09; Play billing & offline cache |
 
 ## Known issues / carried debt
 - `FakeMediaAccessService` yields items in one batch; real Phase 3 impl must yield smaller batches for REQ-IDX-05 progress reporting.
@@ -25,5 +25,5 @@ Last updated: 2026-09-17
 - Performance §5.5 budgets (45s full / 8s incremental / 350MB RAM) must be measured on real device with 15,000+ files before Phase 8 sign-off.
 
 ## Next action
-Start Phase 8 (Settings, Ads, Premium, Polish): implement SettingsScreen, AdMob integration (native, banner, interstitial with frequency capping), In-App Purchases (RevenueCat / in_app_purchase), premium entitlements (unlimited cleanup, ad-free), and release polish per PRD §7, §9, and §10.
+Pre-release QA (run §7 failure testing & performance benchmarks, walk every screen against REQ-ADS-05 audit) before store submission and Phase 9+ (v2 similar photos / blur detection / video compression).
 

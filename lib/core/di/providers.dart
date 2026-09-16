@@ -12,6 +12,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../features/clean/data/media_action_coordinator.dart';
 import '../database/app_database.dart';
+import '../services/ads/ad_manager.dart';
 import '../services/ads/ads_service.dart';
 import '../services/ads/fake_ads_service.dart';
 import '../services/analytics/analytics_service.dart';
@@ -20,8 +21,8 @@ import '../services/background_task/background_task_service.dart';
 import '../services/background_task/fake_background_task_service.dart';
 import '../services/media_access/media_access_service.dart';
 import '../services/media_access/fake_media_access_service.dart';
+import '../services/purchases/app_purchase_service.dart';
 import '../services/purchases/purchase_service.dart';
-import '../services/purchases/fake_purchase_service.dart';
 import '../services/remote_config/remote_config_service.dart';
 import '../services/remote_config/fake_remote_config_service.dart';
 import '../services/onboarding/onboarding_service.dart';
@@ -55,7 +56,7 @@ final remoteConfigServiceProvider = Provider<RemoteConfigService>(
 );
 
 final purchaseServiceProvider = Provider<PurchaseService>((ref) {
-  final svc = FakePurchaseService();
+  final svc = AppPurchaseService();
   ref.onDispose(svc.dispose);
   return svc;
 });
@@ -63,6 +64,16 @@ final purchaseServiceProvider = Provider<PurchaseService>((ref) {
 final adsServiceProvider = Provider<AdsService>(
   (ref) => FakeAdsService(),
 );
+
+final adManagerProvider = Provider<AdManager>((ref) {
+  final adsService = ref.watch(adsServiceProvider);
+  final remoteConfig = ref.watch(remoteConfigServiceProvider);
+  return AdManager(
+    service: adsService,
+    remoteConfigService: remoteConfig,
+    isPremiumCallback: () => ref.watch(isPremiumProvider),
+  );
+});
 
 final mediaAccessServiceProvider = Provider<MediaAccessService>(
   (ref) => FakeMediaAccessService(),
@@ -95,7 +106,10 @@ final premiumEntitlementProvider = StreamProvider<PremiumEntitlement>((ref) {
 
 /// Convenience bool: is the user currently Premium?
 final isPremiumProvider = Provider<bool>((ref) {
+  final purchaseService = ref.watch(purchaseServiceProvider);
   final entitlement = ref.watch(premiumEntitlementProvider);
-  // In Riverpod 3, .value returns null during loading/error (same as old .valueOrNull).
-  return entitlement.value == PremiumEntitlement.premium;
+  if (entitlement.hasValue && entitlement.value != null) {
+    return entitlement.value == PremiumEntitlement.premium;
+  }
+  return purchaseService.currentEntitlement == PremiumEntitlement.premium;
 });

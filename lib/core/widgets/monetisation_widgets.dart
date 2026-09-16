@@ -13,21 +13,22 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../design/tokens.dart';
 import '../di/providers.dart';
+import '../services/ads/ad_manager.dart';
 
 // ---------------------------------------------------------------------------
 // NativeAdContainer
 // ---------------------------------------------------------------------------
 
-/// Placeholder container for a native ad unit.
+/// Container for a native ad unit.
 ///
-/// Phase 8: replace [child] with the real AdMob native ad widget.
-/// When [isReady] is false (ad not loaded / ads disabled / Premium user),
+/// When [canShow] is false (ad not loaded / ads disabled / Premium user / insufficient content),
 /// the widget occupies zero space — no gap, no placeholder box (REQ-ADS-08).
 class NativeAdContainer extends ConsumerWidget {
   const NativeAdContainer({
     super.key,
     this.minContentItemsAbove = 0,
     this.minContentItemsRequired = 10, // REQ-ADS-04
+    this.placement = AdPlacement.homeSection,
   });
 
   /// How many real content items are rendered above this widget.
@@ -36,19 +37,67 @@ class NativeAdContainer extends ConsumerWidget {
   /// Minimum content items that must appear before this ad (REQ-ADS-04).
   final int minContentItemsRequired;
 
+  /// Explicit placement context (REQ-ADS-05).
+  final AdPlacement placement;
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final isPremium = ref.watch(isPremiumProvider);
+    final adManager = ref.watch(adManagerProvider);
 
-    // Premium users: no ad container laid out at all (REQ-HOM-07)
-    if (isPremium) return const SizedBox.shrink();
+    final canShow = adManager.canShowNativeAd(
+      placement: placement,
+      minItemsAbove: minContentItemsAbove,
+    );
 
-    // Not enough real content above this ad — don't show (REQ-ADS-04)
-    if (minContentItemsAbove < minContentItemsRequired) return const SizedBox.shrink();
+    if (!canShow) return const SizedBox.shrink();
 
-    // Phase 0–7: stub — no ad shown, zero space.
-    // Phase 8: replace this with the real native ad widget.
-    return const SizedBox.shrink();
+    final scheme = Theme.of(context).colorScheme;
+    return Card(
+      margin: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
+      child: Padding(
+        padding: const EdgeInsets.all(AppSpacing.cardPadding),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: scheme.surfaceContainerHighest,
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: Text(
+                    'Ad',
+                    style: AppTextStyles.labelSmall.copyWith(
+                      color: scheme.onSurfaceVariant,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: AppSpacing.sm),
+                Expanded(
+                  child: Text(
+                    'Sponsored Recommendation',
+                    style: AppTextStyles.labelMedium.copyWith(color: scheme.outline),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: AppSpacing.sm),
+            Text(
+              'Looking to clean and organize other cloud storage?',
+              style: AppTextStyles.titleSmall,
+            ),
+            const SizedBox(height: AppSpacing.xs),
+            Text(
+              'Discover secure and fast tools for your media library.',
+              style: AppTextStyles.bodySmall.copyWith(color: scheme.onSurfaceVariant),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
 

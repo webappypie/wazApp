@@ -106,6 +106,20 @@ class AppDatabase extends _$AppDatabase {
     final result = await (selectOnly(mediaItems)..addColumns([sum])).getSingle();
     return result.read(sum) ?? 0;
   }
+
+  /// Clear all indexed media and reset scan state (REQ-SET-06).
+  Future<void> clearAnalysisData() async {
+    await delete(mediaItems).go();
+    await updateScanState(
+      const ScanStateTableCompanion(
+        status: Value('idle'),
+        itemsProcessed: Value(0),
+        bytesProcessed: Value(0),
+        lastSeenGeneration: Value(0),
+        lastModifiedCursor: Value(0),
+      ),
+    );
+  }
 }
 
 /// Opens the SQLite file in the app's documents directory.
