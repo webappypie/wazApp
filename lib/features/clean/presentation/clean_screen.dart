@@ -12,8 +12,10 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../core/design/tokens.dart';
+import '../../../core/router/app_router.dart';
 import '../../../core/widgets/app_scaffold.dart';
 import '../../../core/widgets/state_widgets.dart';
 import '../../../core/widgets/partial_access_banner.dart';
@@ -334,12 +336,26 @@ class _DoneView extends ConsumerWidget {
 
           const SizedBox(height: AppSpacing.xxl),
 
-          // Phase 5 placeholder — category cards will live here.
+          // Phase 5: View all indexed media category
           Center(
-            child: Text(
-              'Category breakdown coming in Phase 5',
-              style: AppTextStyles.bodySmall
-                  .copyWith(color: scheme.onSurfaceVariant),
+            child: Column(
+              children: [
+                SizedBox(
+                  width: double.infinity,
+                  height: 48,
+                  child: ElevatedButton.icon(
+                    icon: const Icon(Icons.photo_library_outlined),
+                    label: const Text('Browse All Indexed Media'),
+                    onPressed: () => context.go(AppRoutes.allMedia),
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.sm),
+                Text(
+                  'Specific category breakdown coming in Phase 6',
+                  style: AppTextStyles.bodySmall
+                      .copyWith(color: scheme.onSurfaceVariant),
+                ),
+              ],
             ),
           ),
         ],

@@ -5,10 +5,14 @@
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../di/providers.dart';
 import '../../features/home/presentation/home_screen.dart';
 import '../../features/clean/presentation/clean_screen.dart';
+import '../../features/clean/presentation/category_screen.dart';
+import '../../features/clean/data/all_indexed_media_data_source.dart';
 import '../../features/organize/presentation/organize_screen.dart';
 import '../../features/bin/presentation/bin_screen.dart';
 import '../../features/settings/presentation/settings_screen.dart';
@@ -23,6 +27,7 @@ import '../../features/onboarding/presentation/permission_denied_screen.dart';
 class AppRoutes {
   AppRoutes._();
 
+
   // Onboarding / permission flow
   static const splash = '/splash';
   static const onboarding = '/onboarding';
@@ -33,6 +38,7 @@ class AppRoutes {
   // Main shell destinations
   static const home = '/';
   static const clean = '/clean';
+  static const allMedia = '/clean/all-media';
   static const organize = '/organize';
   static const bin = '/bin';
   static const settings = '/settings';
@@ -91,6 +97,20 @@ final appRouter = GoRouter(
             GoRoute(
               path: AppRoutes.clean,
               builder: (context, state) => const CleanScreen(),
+              routes: [
+                GoRoute(
+                  path: 'all-media',
+                  builder: (context, state) => Consumer(
+                    builder: (context, ref, _) {
+                      final db = ref.watch(appDatabaseProvider);
+                      return CategoryScreen(
+                        title: 'All Indexed Media',
+                        dataSource: AllIndexedMediaDataSource(db),
+                      );
+                    },
+                  ),
+                ),
+              ],
             ),
           ],
         ),
