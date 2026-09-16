@@ -1,7 +1,7 @@
 # Progress — WappTidy
 
 ## Status
-Current phase: 3 (Done)
+Current phase: 4 (Done)
 Last updated: 2026-09-17
 
 ## Phase log
@@ -11,7 +11,7 @@ Last updated: 2026-09-17
 | 1 | Design system | Done | 0 issues, 21/21 tests, all components + gallery |
 | 2 | Onboarding & permissions | Done | 34/34 tests pass; real-device checklist in docs/progress/phase-02.md |
 | 3 | Indexing engine | Done | 50/50 tests; Kotlin MediaStore querier; schema v2; incremental diff; progress UI |
-| 4 | Home dashboard | Not started | |
+| 4 | Home dashboard | Done | 71/71 tests; §8.1 health score; §8.3 no-double-count; hero card; opportunity cards |
 | 5 | Category framework | Not started | |
 | 6 | v1 categories | Not started | |
 | 7 | Actions and Bin | Not started | |
@@ -25,4 +25,4 @@ Last updated: 2026-09-17
 - Performance §5.5 budgets (45s full / 8s incremental / 350MB RAM) must be measured on real device with 15,000+ files before Phase 8 sign-off.
 
 ## Next action
-Start Phase 4 (Home dashboard): hero StorageCard with total/recoverable size, Media Health score per PRD §8.1 formula, recoverable-space calculation per §8.3 (no double-counting), cleanup opportunity cards, ad slot wired to Premium state.
+Start Phase 5 (Category framework): generic CategoryScreen parameterised by data source, sort/filter options, grid/list toggle, multi-select with live running total, preview tap, shared BottomActionBar (Move/Copy/Protect/Delete), verified against a dummy "all indexed media" category.
