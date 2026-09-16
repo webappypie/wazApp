@@ -23,6 +23,8 @@ import '../services/purchases/purchase_service.dart';
 import '../services/purchases/fake_purchase_service.dart';
 import '../services/remote_config/remote_config_service.dart';
 import '../services/remote_config/fake_remote_config_service.dart';
+import '../services/onboarding/onboarding_service.dart';
+import '../services/onboarding/real_onboarding_service.dart';
 
 // ---------------------------------------------------------------------------
 // Database
@@ -67,6 +69,10 @@ final mediaAccessServiceProvider = Provider<MediaAccessService>(
 
 final backgroundTaskServiceProvider = Provider<BackgroundTaskService>(
   (ref) => FakeBackgroundTaskService(),
+);
+
+final onboardingServiceProvider = Provider<OnboardingService>(
+  (ref) => RealOnboardingService(),
 );
 
 // ---------------------------------------------------------------------------

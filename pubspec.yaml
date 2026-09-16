@@ -33,6 +33,8 @@ dependencies:
 
   # --- Utilities ---
   equatable: ^2.0.7
+  shared_preferences: ^2.3.3  # onboarding-seen flag, lightweight KV only
+  permission_handler: ^12.0.0  # Android runtime permissions (READ_MEDIA_*, etc.)
 
 dev_dependencies:
   flutter_test:

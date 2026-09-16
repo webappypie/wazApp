@@ -1,6 +1,6 @@
 // lib/core/router/app_router.dart
 //
-// go_router setup with placeholder routes for all 5 bottom-nav destinations.
+// go_router setup with all routes: splash, onboarding, permission flow, shell.
 // Navigation state survives tab switches (PRD §9).
 
 import 'package:flutter/foundation.dart';
@@ -13,11 +13,24 @@ import '../../features/organize/presentation/organize_screen.dart';
 import '../../features/bin/presentation/bin_screen.dart';
 import '../../features/settings/presentation/settings_screen.dart';
 import '../../features/dev/presentation/gallery_screen.dart';
+import '../../features/onboarding/presentation/splash_screen.dart';
+import '../../features/onboarding/presentation/onboarding_screen.dart';
+import '../../features/onboarding/presentation/permission_rationale_screen.dart';
+import '../../features/onboarding/presentation/permission_request_screen.dart';
+import '../../features/onboarding/presentation/permission_denied_screen.dart';
 
 // Route path constants — single source of truth.
 class AppRoutes {
   AppRoutes._();
 
+  // Onboarding / permission flow
+  static const splash = '/splash';
+  static const onboarding = '/onboarding';
+  static const permissionRationale = '/permission-rationale';
+  static const permissionRequest = '/permission-request';
+  static const permissionDenied = '/permission-denied';
+
+  // Main shell destinations
   static const home = '/';
   static const clean = '/clean';
   static const organize = '/organize';
@@ -29,15 +42,39 @@ class AppRoutes {
 }
 
 final appRouter = GoRouter(
-  initialLocation: AppRoutes.home,
+  initialLocation: AppRoutes.splash,
   debugLogDiagnostics: false,
   routes: [
-    // Debug-only component gallery — not reachable in release builds
+    // --- Splash & onboarding ---
+    GoRoute(
+      path: AppRoutes.splash,
+      builder: (context, state) => const SplashScreen(),
+    ),
+    GoRoute(
+      path: AppRoutes.onboarding,
+      builder: (context, state) => const OnboardingScreen(),
+    ),
+    GoRoute(
+      path: AppRoutes.permissionRationale,
+      builder: (context, state) => const PermissionRationaleScreen(),
+    ),
+    GoRoute(
+      path: AppRoutes.permissionRequest,
+      builder: (context, state) => const PermissionRequestScreen(),
+    ),
+    GoRoute(
+      path: AppRoutes.permissionDenied,
+      builder: (context, state) => const PermissionDeniedScreen(),
+    ),
+
+    // --- Debug gallery (kDebugMode guard) ---
     if (kDebugMode)
       GoRoute(
         path: AppRoutes.devGallery,
         builder: (context, state) => const GalleryScreen(),
       ),
+
+    // --- Main shell with persistent bottom nav ---
     StatefulShellRoute.indexedStack(
       builder: (context, state, shell) => _AppShell(shell: shell),
       branches: [

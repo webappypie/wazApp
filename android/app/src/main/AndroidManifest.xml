@@ -1,4 +1,23 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!--
+        PERMISSIONS — WappTidy
+        Rule: MANAGE_EXTERNAL_STORAGE is NEVER added (DEV_PROMPT §2 rule 7, PRD §5.2).
+
+        API 33+ (Android 13+): granular media permissions
+        API 26–32 (Android 8–12): READ_EXTERNAL_STORAGE capped at maxSdkVersion=32
+        API 34+ (Android 14+): READ_MEDIA_VISUAL_USER_SELECTED grants partial/selected access
+    -->
+    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
+    <uses-permission android:name="android.permission.READ_MEDIA_VIDEO" />
+    <uses-permission android:name="android.permission.READ_MEDIA_AUDIO" />
+    <!-- Android 14+ partial photo picker support -->
+    <uses-permission android:name="android.permission.READ_MEDIA_VISUAL_USER_SELECTED" />
+    <!-- Legacy fallback for API 26–32 only -->
+    <uses-permission
+        android:name="android.permission.READ_EXTERNAL_STORAGE"
+        android:maxSdkVersion="32" />
+    <uses-permission android:name="android.permission.VIBRATE" />
     <application
         android:label="wapptidy"
         android:name="${applicationName}"

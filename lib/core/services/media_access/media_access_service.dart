@@ -15,7 +15,7 @@ enum MediaPermissionState {
   /// All requested permissions granted.
   granted,
 
-  /// No permission granted.
+  /// No permission granted (asked once, can ask again).
   denied,
 
   /// User has permanently denied (show settings redirect).
@@ -24,7 +24,11 @@ enum MediaPermissionState {
   /// Android 14+ partial access (selected photos/videos only).
   /// App must show the partial-access banner wherever media is displayed
   /// (REQ-ONB-05).
-  partial,
+  limited,
+
+  /// Restricted by OS policy (parental controls, MDM, etc.).
+  /// Treat the same as permanentlyDenied — show Settings CTA.
+  restricted,
 }
 
 /// MediaStore query options.

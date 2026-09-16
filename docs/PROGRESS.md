@@ -1,7 +1,7 @@
 # Progress — WappTidy
 
 ## Status
-Current phase: 1 (Done)
+Current phase: 2 (Done)
 Last updated: 2026-09-17
 
 ## Phase log
@@ -9,7 +9,7 @@ Last updated: 2026-09-17
 |---|---|---|---|
 | 0 | Foundation | Done | 21/21 tests pass, flutter analyze clean, committed 8c2f93d |
 | 1 | Design system | Done | 0 issues, 21/21 tests, all components + gallery |
-| 2 | Onboarding & permissions | Not started | |
+| 2 | Onboarding & permissions | Done | 34/34 tests pass; real-device checklist in docs/progress/phase-02.md |
 | 3 | Indexing engine | Not started | |
 | 4 | Home dashboard | Not started | |
 | 5 | Category framework | Not started | |
@@ -21,6 +21,7 @@ Last updated: 2026-09-17
 - None at end of Phase 0.
 - Note: `FakeMediaAccessService` only yields items in one batch; real Phase 3 impl must yield in smaller batches for REQ-IDX-05 progress reporting.
 - Note: Phase 0 providers use Fake implementations for all services. Real implementations are swapped in lib/core/di/providers.dart in later phases — callers never change.
+- Note: `mediaPermissionStateProvider` is a FutureProvider; Phase 3 should upgrade to StreamProvider that re-emits on AppLifecycleState.resumed for reactive partial-access banner.
 
 ## Next action
-Start Phase 2 (Onboarding & permissions): permission rationale screen, READ_MEDIA_* request flow, permission-denied recovery screen, onboarding carousel (max 3 slides).
+Start Phase 3 (Indexing engine): define Drift schema v2 (media_items table), implement MediaStore querying in Kotlin via platform channel filtered to WhatsApp paths, batched inserts, incremental rescan by date_modified / generation ID.
