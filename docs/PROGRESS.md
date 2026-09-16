@@ -1,14 +1,14 @@
 # Progress — WappTidy
 
 ## Status
-Current phase: 0 (Done)
+Current phase: 1 (Done)
 Last updated: 2026-09-17
 
 ## Phase log
 | Phase | Name | Status | Notes |
 |---|---|---|---|
 | 0 | Foundation | Done | 21/21 tests pass, flutter analyze clean, committed 8c2f93d |
-| 1 | Design system | Not started | |
+| 1 | Design system | Done | 0 issues, 21/21 tests, all components + gallery |
 | 2 | Onboarding & permissions | Not started | |
 | 3 | Indexing engine | Not started | |
 | 4 | Home dashboard | Not started | |
@@ -23,4 +23,4 @@ Last updated: 2026-09-17
 - Note: Phase 0 providers use Fake implementations for all services. Real implementations are swapped in lib/core/di/providers.dart in later phases — callers never change.
 
 ## Next action
-Start Phase 1 (Design system): define colour tokens, type scale, spacing, radii, elevation; build core component library in `lib/core/widgets/`.
+Start Phase 2 (Onboarding & permissions): permission rationale screen, READ_MEDIA_* request flow, permission-denied recovery screen, onboarding carousel (max 3 slides).

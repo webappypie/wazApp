@@ -3,6 +3,7 @@
 // go_router setup with placeholder routes for all 5 bottom-nav destinations.
 // Navigation state survives tab switches (PRD §9).
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
@@ -11,6 +12,7 @@ import '../../features/clean/presentation/clean_screen.dart';
 import '../../features/organize/presentation/organize_screen.dart';
 import '../../features/bin/presentation/bin_screen.dart';
 import '../../features/settings/presentation/settings_screen.dart';
+import '../../features/dev/presentation/gallery_screen.dart';
 
 // Route path constants — single source of truth.
 class AppRoutes {
@@ -21,12 +23,21 @@ class AppRoutes {
   static const organize = '/organize';
   static const bin = '/bin';
   static const settings = '/settings';
+
+  /// Debug-only gallery route. Not reachable in release builds.
+  static const devGallery = '/dev/gallery';
 }
 
 final appRouter = GoRouter(
   initialLocation: AppRoutes.home,
   debugLogDiagnostics: false,
   routes: [
+    // Debug-only component gallery — not reachable in release builds
+    if (kDebugMode)
+      GoRoute(
+        path: AppRoutes.devGallery,
+        builder: (context, state) => const GalleryScreen(),
+      ),
     StatefulShellRoute.indexedStack(
       builder: (context, state, shell) => _AppShell(shell: shell),
       branches: [
