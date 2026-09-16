@@ -27,6 +27,7 @@ class MediaTile extends StatelessWidget {
     this.sizeLabel,
     this.isProtected = false,
     this.isVideo = false,
+    this.badgeLabel,
     this.semanticLabel,
   });
 
@@ -38,6 +39,7 @@ class MediaTile extends StatelessWidget {
   final String? sizeLabel;     // e.g. "624 MB"
   final bool isProtected;
   final bool isVideo;
+  final String? badgeLabel;
   final String? semanticLabel;
 
   @override
@@ -63,6 +65,17 @@ class MediaTile extends StatelessWidget {
                   bottom: AppSpacing.xs,
                   left: AppSpacing.xs,
                   child: _VideoChip(label: durationLabel!),
+                ),
+
+              // Badge label (e.g. "Original", "Duplicate")
+              if (badgeLabel != null)
+                Positioned(
+                  top: AppSpacing.xs,
+                  left: AppSpacing.xs,
+                  child: _BadgeChip(
+                    label: badgeLabel!,
+                    isPrimary: badgeLabel == 'Original',
+                  ),
                 ),
 
               // Protected badge
@@ -140,6 +153,32 @@ class _ProtectedBadge extends StatelessWidget {
     );
   }
 }
+
+class _BadgeChip extends StatelessWidget {
+  const _BadgeChip({required this.label, this.isPrimary = false});
+  final String label;
+  final bool isPrimary;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      decoration: BoxDecoration(
+        color: isPrimary ? kColorSuccess : Colors.black87,
+        borderRadius: const BorderRadius.all(Radius.circular(4)),
+      ),
+      child: Text(
+        label,
+        style: const TextStyle(
+          color: Colors.white,
+          fontSize: 10,
+          fontWeight: FontWeight.w700,
+        ),
+      ),
+    );
+  }
+}
+
 
 // ---------------------------------------------------------------------------
 // MediaListRow — list item (used when grid/list toggled to list)

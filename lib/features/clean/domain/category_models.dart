@@ -83,6 +83,7 @@ enum CategorySortKey {
   dateModified,
   size,
   name,
+  duration,
 }
 
 /// Order direction.

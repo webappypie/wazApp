@@ -12,6 +12,10 @@ import '../di/providers.dart';
 import '../../features/home/presentation/home_screen.dart';
 import '../../features/clean/presentation/clean_screen.dart';
 import '../../features/clean/presentation/category_screen.dart';
+import '../../features/clean/presentation/duplicates_screen.dart';
+import '../../features/clean/presentation/large_videos_screen.dart';
+import '../../features/clean/presentation/screenshots_screen.dart';
+import '../../features/clean/presentation/old_media_screen.dart';
 import '../../features/clean/data/all_indexed_media_data_source.dart';
 import '../../features/organize/presentation/organize_screen.dart';
 import '../../features/bin/presentation/bin_screen.dart';
@@ -39,6 +43,10 @@ class AppRoutes {
   static const home = '/';
   static const clean = '/clean';
   static const allMedia = '/clean/all-media';
+  static const duplicates = '/clean/duplicates';
+  static const largeVideos = '/clean/large-videos';
+  static const screenshots = '/clean/screenshots';
+  static const oldMedia = '/clean/old-media';
   static const organize = '/organize';
   static const bin = '/bin';
   static const settings = '/settings';
@@ -109,6 +117,22 @@ final appRouter = GoRouter(
                       );
                     },
                   ),
+                ),
+                GoRoute(
+                  path: 'duplicates',
+                  builder: (context, state) => const DuplicatesScreen(),
+                ),
+                GoRoute(
+                  path: 'large-videos',
+                  builder: (context, state) => const LargeVideosScreen(),
+                ),
+                GoRoute(
+                  path: 'screenshots',
+                  builder: (context, state) => const ScreenshotsScreen(),
+                ),
+                GoRoute(
+                  path: 'old-media',
+                  builder: (context, state) => const OldMediaScreen(),
                 ),
               ],
             ),

@@ -1,7 +1,7 @@
 # Progress — WappTidy
 
 ## Status
-Current phase: 5 (Done)
+Current phase: 7 (Not started)
 Last updated: 2026-09-17
 
 ## Phase log
@@ -13,7 +13,7 @@ Last updated: 2026-09-17
 | 3 | Indexing engine | Done | 50/50 tests; Kotlin MediaStore querier; schema v2; incremental diff; progress UI |
 | 4 | Home dashboard | Done | 71/71 tests; §8.1 health score; §8.3 no-double-count; hero card; opportunity cards |
 | 5 | Category framework | Done | 82/82 tests; generic CategoryScreen; sort/filter; grid/list; preview; multi-select |
-| 6 | v1 categories | Not started | |
+| 6 | v1 categories | Done | 89/89 tests; Kotlin 2-stage hash duplicates; large videos; screenshots heuristics; old media |
 | 7 | Actions and Bin | Not started | |
 | 8 | Settings, ads, premium, polish | Not started | |
 
@@ -25,4 +25,4 @@ Last updated: 2026-09-17
 - Performance §5.5 budgets (45s full / 8s incremental / 350MB RAM) must be measured on real device with 15,000+ files before Phase 8 sign-off.
 
 ## Next action
-Start Phase 6 (v1 categories): implement 2-stage hash exact duplicate detector in Kotlin via platform channel, large-video category, screenshot category heuristics, old-media category filters, configured on top of the Phase 5 CategoryScreen.
+Start Phase 7 (Actions and Bin): implement Delete, Move to folder, Copy to folder, Protect/Unprotect, custom Bin with 30-day auto-purge, Undo snackbar, SAF write permissions, and irreversible action warnings per PRD §6.

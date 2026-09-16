@@ -29,6 +29,8 @@ class CategoryScreen extends StatefulWidget {
     this.onCopy,
     this.onProtect,
     this.onDelete,
+    this.initialSelectedIdsBuilder,
+    this.headerBannerBuilder,
     this.emptyTitle = 'No media found',
     this.emptyBody = 'Your library in this category is clean.',
   });
@@ -42,6 +44,8 @@ class CategoryScreen extends StatefulWidget {
   final void Function(List<CategoryItem> items)? onCopy;
   final void Function(List<CategoryItem> items)? onProtect;
   final void Function(List<CategoryItem> items)? onDelete;
+  final Set<String> Function(List<CategoryItem> items)? initialSelectedIdsBuilder;
+  final Widget Function(BuildContext context, List<CategoryItem> allItems, List<CategoryItem> visibleItems)? headerBannerBuilder;
   final String emptyTitle;
   final String emptyBody;
 
@@ -108,6 +112,9 @@ class _CategoryScreenState extends State<CategoryScreen> {
         // Clean up any stale selections
         final validIds = items.map((e) => e.id).toSet();
         _selectedIds.removeWhere((id) => !validIds.contains(id));
+        if (widget.initialSelectedIdsBuilder != null) {
+          _selectedIds.addAll(widget.initialSelectedIdsBuilder!(_allItems));
+        }
       });
     } catch (e) {
       if (!mounted) return;
@@ -135,6 +142,8 @@ class _CategoryScreenState extends State<CategoryScreen> {
           cmp = a.sizeBytes.compareTo(b.sizeBytes);
         case CategorySortKey.name:
           cmp = a.displayName.toLowerCase().compareTo(b.displayName.toLowerCase());
+        case CategorySortKey.duration:
+          cmp = a.durationMs.compareTo(b.durationMs);
       }
       return _activeSort.direction == SortDirection.ascending ? cmp : -cmp;
     });
@@ -344,6 +353,9 @@ class _CategoryScreenState extends State<CategoryScreen> {
       body: Column(
         children: [
           const PartialAccessBanner(),
+          // Header summary banner (if provided by category)
+          if (widget.headerBannerBuilder != null)
+            widget.headerBannerBuilder!(context, _allItems, visibleItems),
           // Filter chip row
           if (_filters.length > 1)
             Padding(
@@ -389,7 +401,7 @@ class _CategoryScreenState extends State<CategoryScreen> {
 
     return _viewMode == CategoryViewMode.grid
         ? _buildGridView(items)
-        : _buildListView(items);
+        : _buildListView(items, scheme);
   }
 
   Widget _buildGridView(List<CategoryItem> items) {
@@ -411,6 +423,7 @@ class _CategoryScreenState extends State<CategoryScreen> {
           isVideo: item.isVideo,
           durationLabel: item.formattedDuration,
           isProtected: item.isProtected,
+          badgeLabel: item.badgeLabel,
           onTap: () => _handleItemTap(item),
           onLongPress: () => _toggleSelection(item.id),
         );
@@ -418,23 +431,72 @@ class _CategoryScreenState extends State<CategoryScreen> {
     );
   }
 
-  Widget _buildListView(List<CategoryItem> items) {
+  Widget _buildListView(List<CategoryItem> items, ColorScheme scheme) {
     return ListView.builder(
       itemCount: items.length,
       itemBuilder: (context, index) {
         final item = items[index];
         final isSelected = _selectedIds.contains(item.id);
         final subtitle = '${item.formattedSize} • ${item.bucketName}';
+        final isFirstInGroup = item.groupTitle != null &&
+            (index == 0 || items[index - 1].groupTitle != item.groupTitle);
 
-        return MediaListRow(
+        final badge = item.badgeLabel != null
+            ? Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: item.isOriginal
+                      ? kColorSuccess.withValues(alpha: 0.15)
+                      : scheme.surfaceContainerHighest,
+                  borderRadius: const BorderRadius.all(Radius.circular(4)),
+                ),
+                child: Text(
+                  item.badgeLabel!,
+                  style: AppTextStyles.labelSmall.copyWith(
+                    color: item.isOriginal ? kColorSuccess : scheme.onSurfaceVariant,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              )
+            : null;
+
+        final row = MediaListRow(
           thumbnailProvider: item.safeThumbnail,
           title: item.displayName,
           subtitle: subtitle,
           isSelected: isSelected,
           isProtected: item.isProtected,
+          trailing: badge,
           onTap: () => _handleItemTap(item),
           onLongPress: () => _toggleSelection(item.id),
         );
+
+        if (isFirstInGroup) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.pagePadding,
+                  vertical: AppSpacing.xs,
+                ),
+                color: scheme.surfaceContainerHighest.withValues(alpha: 0.5),
+                child: Text(
+                  item.groupTitle!,
+                  style: AppTextStyles.labelMedium.copyWith(
+                    color: scheme.onSurfaceVariant,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+              row,
+            ],
+          );
+        }
+
+        return row;
       },
     );
   }
