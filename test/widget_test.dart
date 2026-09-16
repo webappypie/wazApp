@@ -11,7 +11,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:wapptidy/core/design/tokens.dart';
 import 'package:wapptidy/core/di/providers.dart';
 import 'package:wapptidy/core/services/onboarding/fake_onboarding_service.dart';
-import 'package:wapptidy/features/onboarding/presentation/splash_screen.dart';
 
 void main() {
   testWidgets('SplashScreen renders brand name and icon', (WidgetTester tester) async {
