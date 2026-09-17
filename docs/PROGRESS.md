@@ -1,7 +1,7 @@
 # Progress — WappTidy
 
 ## Status
-Current phase: 11 (Done)
+Current phase: 12 (Done)
 Last updated: 2026-09-17
 
 ## Phase log
@@ -19,6 +19,7 @@ Last updated: 2026-09-17
 | 9 | Similar photos & QA sign-off | Done | 135/135 tests; Pre-release QA §7 sign-off (docs/QA_REPORT.md); 64-bit dHash perceptual clustering; Best shot 'Suggested' |
 | 10 | Blur detection | Done | 142/142 tests; REQ-BLR-01 multi-scale Laplacian variance; two confidence tiers; shallow DoF protection |
 | 11 | Video compression | Done | 149/149 tests; REQ-ACT-09 write-first verification; quality profiles; estimated savings; cancellable transcode |
+| 12 | Swipe Clean | Done | 156/156 tests; REQ-SWP-01..05 gesture card deck, instant undo, batch review confirmation, ad-free compliance |
 
 ## Known issues / carried debt
 - `FakeMediaAccessService` yields items in one batch; real Phase 3 impl must yield smaller batches for REQ-IDX-05 progress reporting.
@@ -28,5 +29,6 @@ Last updated: 2026-09-17
 - Performance §5.5 budgets (45s full / 8s incremental / 350MB RAM) must be measured on real device with 15,000+ files before release.
 
 ## Next action
-Phase 12: Swipe Clean (REQ-SWP-01 to REQ-SWP-05 — Tinder-style gesture card deck, undo snackbar, haptic feedback, batch review confirmation).
+Phase 13: Scheduled Background Scans & Notifications (WorkManager, periodic checks, quiet hours, conservative defaults).
+
 
