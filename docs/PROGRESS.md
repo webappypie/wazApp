@@ -1,7 +1,7 @@
 # Progress — WappTidy
 
 ## Status
-Current phase: 8 (Done)
+Current phase: 9 (Done)
 Last updated: 2026-09-17
 
 ## Phase log
@@ -16,14 +16,15 @@ Last updated: 2026-09-17
 | 6 | v1 categories | Done | 89/89 tests; Kotlin 2-stage hash duplicates; large videos; screenshots heuristics; old media |
 | 7 | Actions and Bin | Done | 100/100 tests; Scoped Storage delete dialogs; write-first Move/Copy; Protect guard; ad-free Bin |
 | 8 | Settings, ads, premium, polish | Done | 128/128 tests; Grouped settings; Theme switching; AdManager REQ-ADS-01..09; Play billing & offline cache |
+| 9 | Similar photos & QA sign-off | Done | 135/135 tests; Pre-release QA §7 sign-off (docs/QA_REPORT.md); 64-bit dHash perceptual clustering; Best shot 'Suggested' |
 
 ## Known issues / carried debt
 - `FakeMediaAccessService` yields items in one batch; real Phase 3 impl must yield smaller batches for REQ-IDX-05 progress reporting.
 - Phase 0 providers use Fake implementations. Real implementations swapped in providers.dart in later phases.
 - `mediaPermissionStateProvider` is a FutureProvider; upgrade to StreamProvider re-emitting on AppLifecycleState.resumed for reactive partial-access banner.
 - `lastModifiedCursor` in IndexingService.startScan() hardcoded to 0; Phase 4 should read ScanStateTable.lastModifiedCursor for proper incremental resume.
-- Performance §5.5 budgets (45s full / 8s incremental / 350MB RAM) must be measured on real device with 15,000+ files before Phase 8 sign-off.
+- Performance §5.5 budgets (45s full / 8s incremental / 350MB RAM) must be measured on real device with 15,000+ files before release.
 
 ## Next action
-Pre-release QA (run §7 failure testing & performance benchmarks, walk every screen against REQ-ADS-05 audit) before store submission and Phase 9+ (v2 similar photos / blur detection / video compression).
+Phase 10: Blur Detection (REQ-BLR-01 — multi-scale Laplacian variance on decoded thumbnails, threshold calibration, burst exclusion).
 

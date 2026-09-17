@@ -76,6 +76,46 @@ class CategoryItem {
   );
 
   ImageProvider get safeThumbnail => thumbnailProvider ?? defaultPlaceholder;
+
+  CategoryItem copyWith({
+    String? id,
+    String? contentUri,
+    String? displayName,
+    String? mimeType,
+    int? sizeBytes,
+    int? dateAddedSec,
+    int? dateModifiedSec,
+    String? bucketName,
+    String? sourceApp,
+    int? width,
+    int? height,
+    int? durationMs,
+    bool? isProtected,
+    ImageProvider? thumbnailProvider,
+    String? groupTitle,
+    String? badgeLabel,
+    bool? isOriginal,
+  }) {
+    return CategoryItem(
+      id: id ?? this.id,
+      contentUri: contentUri ?? this.contentUri,
+      displayName: displayName ?? this.displayName,
+      mimeType: mimeType ?? this.mimeType,
+      sizeBytes: sizeBytes ?? this.sizeBytes,
+      dateAddedSec: dateAddedSec ?? this.dateAddedSec,
+      dateModifiedSec: dateModifiedSec ?? this.dateModifiedSec,
+      bucketName: bucketName ?? this.bucketName,
+      sourceApp: sourceApp ?? this.sourceApp,
+      width: width ?? this.width,
+      height: height ?? this.height,
+      durationMs: durationMs ?? this.durationMs,
+      isProtected: isProtected ?? this.isProtected,
+      thumbnailProvider: thumbnailProvider ?? this.thumbnailProvider,
+      groupTitle: groupTitle ?? this.groupTitle,
+      badgeLabel: badgeLabel ?? this.badgeLabel,
+      isOriginal: isOriginal ?? this.isOriginal,
+    );
+  }
 }
 
 /// Sort criteria for category items.

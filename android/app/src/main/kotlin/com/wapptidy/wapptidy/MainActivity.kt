@@ -28,11 +28,13 @@ class MainActivity : FlutterActivity() {
         private const val EVENT_CHANNEL     = "com.wapptidy/media_indexer_events"
         private const val DUPLICATE_CHANNEL = "com.wapptidy/duplicate_detector"
         private const val ACTIONS_CHANNEL   = "com.wapptidy/media_actions"
+        private const val SIMILAR_CHANNEL   = "com.wapptidy/perceptual_hash"
     }
 
     private lateinit var mediaIndexer: MediaIndexer
     private lateinit var duplicateDetector: DuplicateDetector
     private lateinit var mediaActionHandler: MediaActionHandler
+    private lateinit var perceptualHashEngine: PerceptualHashEngine
     private val scope = CoroutineScope(Dispatchers.Main)
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
@@ -41,6 +43,7 @@ class MainActivity : FlutterActivity() {
         mediaIndexer = MediaIndexer(applicationContext)
         duplicateDetector = DuplicateDetector(applicationContext)
         mediaActionHandler = MediaActionHandler(applicationContext) { this }
+        perceptualHashEngine = PerceptualHashEngine(applicationContext)
 
         // --- MethodChannel: indexer control commands ---
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, METHOD_CHANNEL)
@@ -158,6 +161,25 @@ class MainActivity : FlutterActivity() {
                                 result.success(trashed)
                             } catch (e: Exception) {
                                 result.error("QUERY_TRASH_FAILED", e.message, null)
+                            }
+                        }
+                    }
+                    else -> result.notImplemented()
+                }
+            }
+
+        // --- MethodChannel: perceptual hash engine (REQ-SIM-01) ---
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, SIMILAR_CHANNEL)
+            .setMethodCallHandler { call, result ->
+                when (call.method) {
+                    "computeBatchHashes" -> {
+                        val uris = call.argument<List<String>>("uris") ?: emptyList()
+                        scope.launch {
+                            try {
+                                val hashes = perceptualHashEngine.computeBatchHashes(uris)
+                                result.success(hashes)
+                            } catch (e: Exception) {
+                                result.error("HASH_FAILED", e.message, null)
                             }
                         }
                     }
