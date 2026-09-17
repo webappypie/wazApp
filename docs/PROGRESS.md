@@ -1,7 +1,7 @@
 # Progress — WappTidy
 
 ## Status
-Current phase: 16 (Done)
+Current phase: 17 (Done)
 Last updated: 2026-09-17
 
 ## Phase log
@@ -24,6 +24,7 @@ Last updated: 2026-09-17
 | 14 | Storage Growth Analytics with Historical Backfill | Done | 178/178 tests; REQ-ANL-01..04, P-03; SQLite snapshot table, cold-start backfill engine, 7D/30D free, 6M/All premium, area/line chart |
 | 15 | Documents & Voice Notes / Audio Cleaner | Done | 191/191 tests; REQ-CLN-01, P-01..03; Audio playback preview, system viewer document launch, list-mode category screens, Home opportunity cards |
 | 16 | Google Drive Cloud Backup / Offload | Done | 204/204 tests; REQ-BAK-01..03, P-01..03; drive.file restricted scope, live byte/file progress, failed retry, post-backup 'Review originals' CTA |
+| 17 | Production Release Packaging & Play Store Readiness | Done | 204/204 tests; Proguard/R8 rules, manifest integrity & network permissions, key.properties signing config, full Play Store listing & screenshot plan |
 
 ## Known issues / carried debt
 - `FakeMediaAccessService` yields items in one batch; real Phase 3 impl must yield smaller batches for REQ-IDX-05 progress reporting.
@@ -33,7 +34,8 @@ Last updated: 2026-09-17
 - Performance §5.5 budgets (45s full / 8s incremental / 350MB RAM) must be measured on real device with 15,000+ files before release.
 
 ## Next action
-Phase 17: Production Release Packaging, Proguard / R8 Verification & Play Store Asset Readiness.
+All Roadmap Phases Complete! Production Release Ready. All 17 phases implemented, hardened, and verified with 204 tests.
+
 
 
 
