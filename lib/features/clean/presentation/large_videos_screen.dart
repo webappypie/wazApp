@@ -6,6 +6,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/design/tokens.dart';
 import '../../../core/di/providers.dart';
 import '../data/large_videos_data_source.dart';
 import '../domain/category_models.dart';
@@ -30,6 +31,54 @@ class LargeVideosScreen extends ConsumerWidget {
       initialViewMode: CategoryViewMode.list,
       emptyTitle: 'No large videos found',
       emptyBody: 'There are no videos larger than 50 MB in your WhatsApp chats.',
+      headerBannerBuilder: (ctx, allItems, visibleItems) {
+        final scheme = Theme.of(ctx).colorScheme;
+        if (allItems.isEmpty) return const SizedBox.shrink();
+
+        return Container(
+          width: double.infinity,
+          margin: const EdgeInsets.fromLTRB(
+            AppSpacing.pagePadding,
+            AppSpacing.xs,
+            AppSpacing.pagePadding,
+            AppSpacing.xs,
+          ),
+          padding: const EdgeInsets.all(AppSpacing.md),
+          decoration: BoxDecoration(
+            color: scheme.primaryContainer.withValues(alpha: 0.4),
+            borderRadius: AppRadius.cardRadius,
+            border: Border.all(color: scheme.primary.withValues(alpha: 0.2)),
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(Icons.video_settings_rounded, size: 22, color: scheme.primary),
+              const SizedBox(width: AppSpacing.sm),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Video Compression Available',
+                      style: AppTextStyles.titleSmall.copyWith(
+                        color: scheme.onSurface,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      'Reduce file sizes by up to 70% with on-device compression (REQ-ACT-09). Originals are preserved until verified.',
+                      style: AppTextStyles.bodySmall.copyWith(
+                        color: scheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        );
+      },
       // REQ-VID-01: Size filters (50MB / 100MB / 250MB / 500MB / 1GB+)
       filterOptions: [
         CategoryFilterOption(

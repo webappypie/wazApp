@@ -30,6 +30,8 @@ class MainActivity : FlutterActivity() {
         private const val ACTIONS_CHANNEL   = "com.wapptidy/media_actions"
         private const val SIMILAR_CHANNEL   = "com.wapptidy/perceptual_hash"
         private const val BLUR_CHANNEL      = "com.wapptidy/blur_detector"
+        private const val COMPRESSOR_CHANNEL = "com.wapptidy/video_compressor"
+        private const val COMPRESSOR_EVENTS  = "com.wapptidy/video_compressor_events"
     }
 
     private lateinit var mediaIndexer: MediaIndexer
@@ -37,6 +39,8 @@ class MainActivity : FlutterActivity() {
     private lateinit var mediaActionHandler: MediaActionHandler
     private lateinit var perceptualHashEngine: PerceptualHashEngine
     private lateinit var blurDetectorEngine: BlurDetectorEngine
+    private lateinit var videoCompressorEngine: VideoCompressorEngine
+    private var compressorEventSink: EventChannel.EventSink? = null
     private val scope = CoroutineScope(Dispatchers.Main)
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
@@ -204,6 +208,60 @@ class MainActivity : FlutterActivity() {
                                 result.error("BLUR_FAILED", e.message, null)
                             }
                         }
+                    }
+                    else -> result.notImplemented()
+                }
+            }
+
+        // --- MethodChannel & EventChannel: video compressor (REQ-ACT-09, REQ-CMP-01..04) ---
+        videoCompressorEngine = VideoCompressorEngine(applicationContext)
+
+        EventChannel(flutterEngine.dartExecutor.binaryMessenger, COMPRESSOR_EVENTS)
+            .setStreamHandler(object : EventChannel.StreamHandler {
+                override fun onListen(arguments: Any?, events: EventChannel.EventSink?) {
+                    compressorEventSink = events
+                }
+                override fun onCancel(arguments: Any?) {
+                    compressorEventSink = null
+                }
+            })
+
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, COMPRESSOR_CHANNEL)
+            .setMethodCallHandler { call, result ->
+                when (call.method) {
+                    "compressVideo" -> {
+                        val uriStr = call.argument<String>("uri") ?: ""
+                        val targetHeight = (call.argument<Number>("targetHeight") ?: 720).toInt()
+                        val targetBitrate = (call.argument<Number>("targetBitrateBps") ?: 2500000).toInt()
+
+                        scope.launch {
+                            val res = videoCompressorEngine.compressVideo(
+                                uriStr = uriStr,
+                                targetHeight = targetHeight,
+                                targetBitrateBps = targetBitrate,
+                                onProgress = { progress ->
+                                    scope.launch(Dispatchers.Main) {
+                                        compressorEventSink?.success(
+                                            mapOf(
+                                                "progress" to progress,
+                                                "step" to "transcoding"
+                                            )
+                                        )
+                                    }
+                                }
+                            )
+
+                            if (res.isSuccess) {
+                                result.success(res.getOrNull())
+                            } else {
+                                val error = res.exceptionOrNull()?.message ?: "Compression failed"
+                                result.error("COMPRESSION_FAILED", error, null)
+                            }
+                        }
+                    }
+                    "cancelCompression" -> {
+                        videoCompressorEngine.cancel()
+                        result.success(null)
                     }
                     else -> result.notImplemented()
                 }
