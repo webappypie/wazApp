@@ -159,10 +159,35 @@ class _HeroCard extends ConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'Chat Media Storage',
-            style: AppTextStyles.labelMedium
-                .copyWith(color: scheme.onPrimaryContainer.withValues(alpha: 0.7)),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Chat Media Storage',
+                style: AppTextStyles.labelMedium
+                    .copyWith(color: scheme.onPrimaryContainer.withValues(alpha: 0.7)),
+              ),
+              InkWell(
+                onTap: () => context.go(AppRoutes.storageAnalytics),
+                borderRadius: BorderRadius.circular(12),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  child: Row(
+                    children: [
+                      Icon(Icons.show_chart, size: 14, color: scheme.onPrimaryContainer),
+                      const SizedBox(width: 4),
+                      Text(
+                        'Trends',
+                        style: AppTextStyles.labelSmall.copyWith(
+                          color: scheme.onPrimaryContainer,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: AppSpacing.xs),
 

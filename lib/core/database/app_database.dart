@@ -48,6 +48,24 @@ class AppDatabase extends _$AppDatabase {
         beforeOpen: (details) async {
           await customStatement('PRAGMA journal_mode=WAL');
           await customStatement('PRAGMA foreign_keys=ON');
+          await customStatement('''
+            CREATE TABLE IF NOT EXISTS storage_snapshots (
+              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              date_epoch_day INTEGER NOT NULL UNIQUE,
+              total_bytes INTEGER NOT NULL,
+              image_bytes INTEGER NOT NULL DEFAULT 0,
+              video_bytes INTEGER NOT NULL DEFAULT 0,
+              audio_bytes INTEGER NOT NULL DEFAULT 0,
+              document_bytes INTEGER NOT NULL DEFAULT 0,
+              duplicate_bytes INTEGER NOT NULL DEFAULT 0,
+              potential_cleanup_bytes INTEGER NOT NULL DEFAULT 0,
+              space_recovered_bytes INTEGER NOT NULL DEFAULT 0,
+              created_at INTEGER NOT NULL
+            )
+          ''');
+          await customStatement(
+            'CREATE INDEX IF NOT EXISTS idx_storage_snapshots_date ON storage_snapshots(date_epoch_day)',
+          );
         },
       );
 
@@ -110,6 +128,9 @@ class AppDatabase extends _$AppDatabase {
   /// Clear all indexed media and reset scan state (REQ-SET-06).
   Future<void> clearAnalysisData() async {
     await delete(mediaItems).go();
+    try {
+      await customStatement('DELETE FROM storage_snapshots');
+    } catch (_) {}
     await updateScanState(
       const ScanStateTableCompanion(
         status: Value('idle'),
@@ -119,6 +140,80 @@ class AppDatabase extends _$AppDatabase {
         lastModifiedCursor: Value(0),
       ),
     );
+  }
+
+  // ---------------------------------------------------------------------------
+  // Storage Snapshot helpers (REQ-ANL-01, REQ-ANL-02)
+  // ---------------------------------------------------------------------------
+
+  Future<void> upsertStorageSnapshot({
+    required int dateEpochDay,
+    required int totalBytes,
+    int imageBytes = 0,
+    int videoBytes = 0,
+    int audioBytes = 0,
+    int documentBytes = 0,
+    int duplicateBytes = 0,
+    int potentialCleanupBytes = 0,
+    int spaceRecoveredBytes = 0,
+    int? createdAtSec,
+  }) async {
+    final nowSec = createdAtSec ?? DateTime.now().millisecondsSinceEpoch ~/ 1000;
+    await customStatement('''
+      INSERT INTO storage_snapshots (
+        date_epoch_day, total_bytes, image_bytes, video_bytes, audio_bytes,
+        document_bytes, duplicate_bytes, potential_cleanup_bytes, space_recovered_bytes,
+        created_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ON CONFLICT(date_epoch_day) DO UPDATE SET
+        total_bytes = excluded.total_bytes,
+        image_bytes = excluded.image_bytes,
+        video_bytes = excluded.video_bytes,
+        audio_bytes = excluded.audio_bytes,
+        document_bytes = excluded.document_bytes,
+        duplicate_bytes = excluded.duplicate_bytes,
+        potential_cleanup_bytes = excluded.potential_cleanup_bytes,
+        space_recovered_bytes = excluded.space_recovered_bytes,
+        created_at = excluded.created_at
+    ''', [
+      dateEpochDay,
+      totalBytes,
+      imageBytes,
+      videoBytes,
+      audioBytes,
+      documentBytes,
+      duplicateBytes,
+      potentialCleanupBytes,
+      spaceRecoveredBytes,
+      nowSec,
+    ]);
+  }
+
+  Future<List<QueryRow>> queryStorageSnapshots({
+    int? fromEpochDay,
+    int? toEpochDay,
+  }) async {
+    String query = 'SELECT * FROM storage_snapshots';
+    final List<Object?> params = [];
+
+    if (fromEpochDay != null && toEpochDay != null) {
+      query += ' WHERE date_epoch_day >= ? AND date_epoch_day <= ?';
+      params.addAll([fromEpochDay, toEpochDay]);
+    } else if (fromEpochDay != null) {
+      query += ' WHERE date_epoch_day >= ?';
+      params.add(fromEpochDay);
+    } else if (toEpochDay != null) {
+      query += ' WHERE date_epoch_day <= ?';
+      params.add(toEpochDay);
+    }
+
+    query += ' ORDER BY date_epoch_day ASC';
+    return customSelect(query, variables: params.map((p) => Variable(p)).toList()).get();
+  }
+
+  Future<bool> hasStorageSnapshots() async {
+    final rows = await customSelect('SELECT 1 FROM storage_snapshots LIMIT 1').get();
+    return rows.isNotEmpty;
   }
 }
 

@@ -21,6 +21,7 @@ import '../../features/clean/presentation/old_media_screen.dart';
 import '../../features/clean/presentation/similar_photos_screen.dart';
 import '../../features/clean/presentation/blurry_photos_screen.dart';
 import '../../features/clean/presentation/swipe_clean_screen.dart';
+import '../../features/analytics/presentation/storage_analytics_screen.dart';
 import '../../features/clean/data/all_indexed_media_data_source.dart';
 import '../../features/organize/presentation/organize_screen.dart';
 import '../../features/bin/presentation/bin_screen.dart';
@@ -59,6 +60,7 @@ class AppRoutes {
   static const organize = '/organize';
   static const bin = '/bin';
   static const settings = '/settings';
+  static const storageAnalytics = '/analytics';
 
   /// Debug-only gallery route. Not reachable in release builds.
   static const devGallery = '/dev/gallery';
@@ -106,6 +108,12 @@ final appRouter = GoRouter(
             GoRoute(
               path: AppRoutes.home,
               builder: (context, state) => const HomeScreen(),
+              routes: [
+                GoRoute(
+                  path: 'analytics',
+                  builder: (context, state) => const StorageAnalyticsScreen(),
+                ),
+              ],
             ),
           ],
         ),
