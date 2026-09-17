@@ -108,4 +108,7 @@ abstract interface class MediaAccessService {
 
   /// Read Android SDK API level (e.g. 33 for Android 13).
   Future<int> getAndroidVersion();
+
+  /// Open a media item or document with the device default application (P-01).
+  Future<bool> openMediaItem({required String contentUri, required String mimeType});
 }

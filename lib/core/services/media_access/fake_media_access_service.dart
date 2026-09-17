@@ -158,4 +158,9 @@ final class FakeMediaAccessService implements MediaAccessService {
 
   @override
   Future<int> getAndroidVersion() async => simulatedApiLevel;
+
+  @override
+  Future<bool> openMediaItem({required String contentUri, required String mimeType}) async {
+    return true;
+  }
 }

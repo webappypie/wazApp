@@ -421,4 +421,22 @@ class MediaActionHandler(
         }
         return file
     }
+
+    /**
+     * Launches system viewer for a given media/document item via ACTION_VIEW (P-01).
+     */
+    fun openMedia(uriString: String, mimeType: String, result: MethodChannel.Result) {
+        try {
+            val uri = Uri.parse(uriString)
+            val intent = Intent(Intent.ACTION_VIEW).apply {
+                setDataAndType(uri, if (mimeType.isNotEmpty()) mimeType else "*/*")
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
+            context.startActivity(intent)
+            result.success(true)
+        } catch (e: Exception) {
+            result.error("OPEN_FAILED", e.message ?: "Failed to open media", null)
+        }
+    }
 }

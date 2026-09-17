@@ -193,6 +193,7 @@ class MediaListRow extends StatelessWidget {
     required this.isSelected,
     required this.onTap,
     required this.onLongPress,
+    this.leading,
     this.trailing,
     this.isProtected = false,
     this.semanticLabel,
@@ -204,6 +205,7 @@ class MediaListRow extends StatelessWidget {
   final bool isSelected;
   final VoidCallback onTap;
   final VoidCallback onLongPress;
+  final Widget? leading;
   final Widget? trailing;
   final bool isProtected;
   final String? semanticLabel;
@@ -230,15 +232,18 @@ class MediaListRow extends StatelessWidget {
                 height: 56,
                 child: Stack(
                   children: [
-                    ClipRRect(
-                      borderRadius: const BorderRadius.all(Radius.circular(AppRadius.sm)),
-                      child: Image(
-                        image: thumbnailProvider,
-                        width: 56,
-                        height: 56,
-                        fit: BoxFit.cover,
+                    if (leading != null)
+                      leading!
+                    else
+                      ClipRRect(
+                        borderRadius: const BorderRadius.all(Radius.circular(AppRadius.sm)),
+                        child: Image(
+                          image: thumbnailProvider,
+                          width: 56,
+                          height: 56,
+                          fit: BoxFit.cover,
+                        ),
                       ),
-                    ),
                     if (isSelected)
                       Positioned.fill(
                         child: DecoratedBox(

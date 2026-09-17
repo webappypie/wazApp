@@ -627,6 +627,50 @@ class _CategoryScreenState extends ConsumerState<CategoryScreen> {
     );
   }
 
+  Widget? _buildLeading(CategoryItem item, ColorScheme scheme) {
+    if (item.isImage || item.isVideo) {
+      return null;
+    }
+
+    final IconData icon;
+    final Color bgColor;
+    final Color iconColor;
+
+    if (item.isVoiceNote) {
+      icon = Icons.mic_none_rounded;
+      bgColor = Colors.deepOrange.withValues(alpha: 0.15);
+      iconColor = Colors.deepOrange;
+    } else if (item.isAudio) {
+      icon = Icons.music_note_rounded;
+      bgColor = Colors.deepPurple.withValues(alpha: 0.15);
+      iconColor = Colors.deepPurple;
+    } else if (item.fileExtension == '.pdf' || item.mimeType == 'application/pdf') {
+      icon = Icons.picture_as_pdf_outlined;
+      bgColor = Colors.red.withValues(alpha: 0.15);
+      iconColor = Colors.red;
+    } else if (['.zip', '.rar', '.7z', '.tar', '.gz'].contains(item.fileExtension)) {
+      icon = Icons.folder_zip_outlined;
+      bgColor = Colors.amber.withValues(alpha: 0.2);
+      iconColor = Colors.amber.shade900;
+    } else {
+      icon = Icons.description_outlined;
+      bgColor = Colors.blue.withValues(alpha: 0.15);
+      iconColor = Colors.blue;
+    }
+
+    return Container(
+      width: 56,
+      height: 56,
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: const BorderRadius.all(Radius.circular(AppRadius.sm)),
+      ),
+      child: Center(
+        child: Icon(icon, color: iconColor, size: 28),
+      ),
+    );
+  }
+
   Widget _buildListView(List<CategoryItem> items, ColorScheme scheme) {
     return ListView.builder(
       itemCount: items.length,
@@ -655,8 +699,10 @@ class _CategoryScreenState extends ConsumerState<CategoryScreen> {
                 ),
               )
             : null;
+        final Widget? leading = _buildLeading(item, scheme);
 
         final row = MediaListRow(
+          leading: leading,
           thumbnailProvider: item.safeThumbnail,
           title: item.displayName,
           subtitle: subtitle,

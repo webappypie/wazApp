@@ -186,6 +186,21 @@ class RealHomeRepository implements HomeRepository {
       _db.mediaItems.bucketName.like('%Screenshot%'),
     );
 
+    final voiceNotesCount = await _countWhere(
+      _db.mediaItems.mimeType.like('audio/%'),
+    );
+    final voiceNotesBytes = await _sumWhere(
+      _db.mediaItems.mimeType.like('audio/%'),
+    );
+
+    final documentsCondition = _db.mediaItems.mimeType.like('application/%') |
+        _db.mediaItems.mimeType.like('text/%') |
+        (_db.mediaItems.mimeType.like('image/%').not() &
+            _db.mediaItems.mimeType.like('video/%').not() &
+            _db.mediaItems.mimeType.like('audio/%').not());
+    final documentsCount = await _countWhere(documentsCondition);
+    final documentsBytes = await _sumWhere(documentsCondition);
+
     return [
       if (largeVideoCount > 0)
         OpportunityCard(
@@ -196,6 +211,26 @@ class RealHomeRepository implements HomeRepository {
           fileCount: largeVideoCount,
           totalBytes: largeVideoBytesTotal,
           routePath: '/clean/large-videos',
+        ),
+      if (voiceNotesCount > 0)
+        OpportunityCard(
+          id:        'voice_notes',
+          title:     'Voice Notes & Audio',
+          subtitle:  '$voiceNotesCount voice notes and audio clips',
+          iconData:  0xe3c9, // Icons.mic_none_rounded codepoint
+          fileCount: voiceNotesCount,
+          totalBytes: voiceNotesBytes,
+          routePath: '/clean/voice-notes',
+        ),
+      if (documentsCount > 0)
+        OpportunityCard(
+          id:        'documents',
+          title:     'Documents',
+          subtitle:  '$documentsCount PDFs, docs and archives',
+          iconData:  0xe1af, // Icons.description_outlined codepoint
+          fileCount: documentsCount,
+          totalBytes: documentsBytes,
+          routePath: '/clean/documents',
         ),
       if (oldMediaCount > 0)
         OpportunityCard(
@@ -218,6 +253,15 @@ class RealHomeRepository implements HomeRepository {
           routePath: '/clean/screenshots',
         ),
     ];
+  }
+
+  Future<int> _sumWhere(Expression<bool> condition) async {
+    final sumExpr = _db.mediaItems.sizeBytes.sum();
+    final q = _db.selectOnly(_db.mediaItems)
+      ..addColumns([sumExpr])
+      ..where(condition);
+    final row = await q.getSingle();
+    return row.read(sumExpr) ?? 0;
   }
 
   Future<int> _countWhere(Expression<bool> condition) async {

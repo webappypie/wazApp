@@ -49,6 +49,30 @@ class CategoryItem {
   bool get isVideo => mimeType.startsWith('video/');
   bool get isAudio => mimeType.startsWith('audio/');
   bool get isImage => mimeType.startsWith('image/');
+  bool get isDocument => !isVideo && !isAudio && !isImage;
+  bool get isVoiceNote =>
+      isAudio &&
+      (displayName.toUpperCase().startsWith('PTT-') ||
+          bucketName.toLowerCase().contains('voice'));
+
+  String get fileExtension {
+    final dotIndex = displayName.lastIndexOf('.');
+    if (dotIndex != -1 && dotIndex < displayName.length - 1) {
+      return displayName.substring(dotIndex).toLowerCase();
+    }
+    return '';
+  }
+
+  String get documentTypeLabel {
+    final ext = fileExtension;
+    if (ext == '.pdf' || mimeType == 'application/pdf') return 'PDF Document';
+    if (['.doc', '.docx'].contains(ext) || mimeType.contains('word')) return 'Word Document';
+    if (['.xls', '.xlsx', '.csv'].contains(ext) || mimeType.contains('sheet') || mimeType.contains('excel')) return 'Spreadsheet';
+    if (['.ppt', '.pptx'].contains(ext) || mimeType.contains('presentation') || mimeType.contains('powerpoint')) return 'Presentation';
+    if (['.zip', '.rar', '.7z', '.tar', '.gz'].contains(ext) || mimeType.contains('zip')) return 'Archive';
+    if (ext == '.txt' || mimeType.startsWith('text/')) return 'Text File';
+    return 'Document';
+  }
 
   String get formattedSize => formatBytes(sizeBytes);
 

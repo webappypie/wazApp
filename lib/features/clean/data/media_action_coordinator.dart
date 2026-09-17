@@ -185,4 +185,12 @@ class MediaActionCoordinator {
   Future<int> getAndroidVersion() async {
     return await mediaAccessService.getAndroidVersion();
   }
+
+  /// Launches system viewer for a document or media item (P-01).
+  Future<bool> openMediaItem({required String contentUri, required String mimeType}) async {
+    return await mediaAccessService.openMediaItem(
+      contentUri: contentUri,
+      mimeType: mimeType,
+    );
+  }
 }

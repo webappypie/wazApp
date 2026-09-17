@@ -27,6 +27,8 @@ import '../services/remote_config/remote_config_service.dart';
 import '../services/remote_config/fake_remote_config_service.dart';
 import '../services/notifications/notification_service.dart';
 import '../services/notifications/fake_notification_service.dart';
+import '../services/audio/audio_playback_service.dart';
+import '../services/audio/fake_audio_playback_service.dart';
 import '../services/onboarding/onboarding_service.dart';
 import '../services/onboarding/real_onboarding_service.dart';
 
@@ -91,6 +93,10 @@ final onboardingServiceProvider = Provider<OnboardingService>(
 
 final notificationServiceProvider = Provider<NotificationService>(
   (ref) => FakeNotificationService(),
+);
+
+final audioPlaybackServiceProvider = Provider<AudioPlaybackService>(
+  (ref) => FakeAudioPlaybackService(),
 );
 
 final mediaActionCoordinatorProvider = Provider<MediaActionCoordinator>((ref) {

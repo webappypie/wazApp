@@ -180,6 +180,11 @@ class MainActivity : FlutterActivity() {
                             }
                         }
                     }
+                    "openMedia" -> {
+                        val uri = call.argument<String>("uri") ?: ""
+                        val mime = call.argument<String>("mimeType") ?: "*/*"
+                        mediaActionHandler.openMedia(uri, mime, result)
+                    }
                     else -> result.notImplemented()
                 }
             }

@@ -42,6 +42,7 @@ private val WHATSAPP_BUCKETS = setOf(
     "WhatsApp Images",
     "WhatsApp Video",
     "WhatsApp Audio",
+    "WhatsApp Voice Notes",
     "WhatsApp Documents",
     "WhatsApp Animated Gifs",
     "WhatsApp Stickers",
@@ -49,6 +50,7 @@ private val WHATSAPP_BUCKETS = setOf(
     "WhatsApp Business Images",
     "WhatsApp Business Video",
     "WhatsApp Business Audio",
+    "WhatsApp Business Documents",
     // Legacy bucket names
     "WhatsApp",
 )
@@ -297,11 +299,13 @@ class MediaIndexer(private val context: Context) {
     private fun buildSelection(sinceModifiedSec: Long, generationSince: Long): String? {
         val clauses = mutableListOf<String>()
 
-        // Only media files (images, video, audio) — exclude documents by MIME prefix.
+        // Media files (images, video, audio) and documents (application/%, text/%)
         clauses.add(
             "(${MediaStore.Files.FileColumns.MIME_TYPE} LIKE 'image/%' " +
             "OR ${MediaStore.Files.FileColumns.MIME_TYPE} LIKE 'video/%' " +
-            "OR ${MediaStore.Files.FileColumns.MIME_TYPE} LIKE 'audio/%')"
+            "OR ${MediaStore.Files.FileColumns.MIME_TYPE} LIKE 'audio/%' " +
+            "OR ${MediaStore.Files.FileColumns.MIME_TYPE} LIKE 'application/%' " +
+            "OR ${MediaStore.Files.FileColumns.MIME_TYPE} LIKE 'text/%')"
         )
 
         if (sinceModifiedSec > 0L) {

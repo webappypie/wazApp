@@ -21,6 +21,8 @@ import '../../features/clean/presentation/old_media_screen.dart';
 import '../../features/clean/presentation/similar_photos_screen.dart';
 import '../../features/clean/presentation/blurry_photos_screen.dart';
 import '../../features/clean/presentation/swipe_clean_screen.dart';
+import '../../features/clean/presentation/voice_notes_screen.dart';
+import '../../features/clean/presentation/documents_screen.dart';
 import '../../features/analytics/presentation/storage_analytics_screen.dart';
 import '../../features/clean/data/all_indexed_media_data_source.dart';
 import '../../features/organize/presentation/organize_screen.dart';
@@ -56,6 +58,8 @@ class AppRoutes {
   static const similarPhotos = '/clean/similar-photos';
   static const blurryPhotos = '/clean/blurry-photos';
   static const swipeClean = '/clean/swipe';
+  static const voiceNotes = '/clean/voice-notes';
+  static const documents = '/clean/documents';
   static const cleanupSuccess = '/clean/success';
   static const organize = '/organize';
   static const bin = '/bin';
@@ -162,6 +166,14 @@ final appRouter = GoRouter(
                 GoRoute(
                   path: 'swipe',
                   builder: (context, state) => const SwipeCleanScreen(),
+                ),
+                GoRoute(
+                  path: 'voice-notes',
+                  builder: (context, state) => const VoiceNotesScreen(),
+                ),
+                GoRoute(
+                  path: 'documents',
+                  builder: (context, state) => const DocumentsScreen(),
                 ),
                 GoRoute(
                   path: 'success',
