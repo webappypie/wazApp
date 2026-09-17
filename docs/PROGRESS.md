@@ -1,7 +1,7 @@
 # Progress — WappTidy
 
 ## Status
-Current phase: 9 (Done)
+Current phase: 10 (Done)
 Last updated: 2026-09-17
 
 ## Phase log
@@ -17,6 +17,7 @@ Last updated: 2026-09-17
 | 7 | Actions and Bin | Done | 100/100 tests; Scoped Storage delete dialogs; write-first Move/Copy; Protect guard; ad-free Bin |
 | 8 | Settings, ads, premium, polish | Done | 128/128 tests; Grouped settings; Theme switching; AdManager REQ-ADS-01..09; Play billing & offline cache |
 | 9 | Similar photos & QA sign-off | Done | 135/135 tests; Pre-release QA §7 sign-off (docs/QA_REPORT.md); 64-bit dHash perceptual clustering; Best shot 'Suggested' |
+| 10 | Blur detection | Done | 142/142 tests; REQ-BLR-01 multi-scale Laplacian variance; two confidence tiers; shallow DoF protection |
 
 ## Known issues / carried debt
 - `FakeMediaAccessService` yields items in one batch; real Phase 3 impl must yield smaller batches for REQ-IDX-05 progress reporting.
@@ -26,5 +27,5 @@ Last updated: 2026-09-17
 - Performance §5.5 budgets (45s full / 8s incremental / 350MB RAM) must be measured on real device with 15,000+ files before release.
 
 ## Next action
-Phase 10: Blur Detection (REQ-BLR-01 — multi-scale Laplacian variance on decoded thumbnails, threshold calibration, burst exclusion).
+Phase 11: Video Compression (REQ-CMP-01 to REQ-CMP-04 — on-device H.264/H.265 compression, estimated vs actual savings, user confirmation before replacing).
 

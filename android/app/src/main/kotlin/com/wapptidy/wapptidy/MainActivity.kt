@@ -29,12 +29,14 @@ class MainActivity : FlutterActivity() {
         private const val DUPLICATE_CHANNEL = "com.wapptidy/duplicate_detector"
         private const val ACTIONS_CHANNEL   = "com.wapptidy/media_actions"
         private const val SIMILAR_CHANNEL   = "com.wapptidy/perceptual_hash"
+        private const val BLUR_CHANNEL      = "com.wapptidy/blur_detector"
     }
 
     private lateinit var mediaIndexer: MediaIndexer
     private lateinit var duplicateDetector: DuplicateDetector
     private lateinit var mediaActionHandler: MediaActionHandler
     private lateinit var perceptualHashEngine: PerceptualHashEngine
+    private lateinit var blurDetectorEngine: BlurDetectorEngine
     private val scope = CoroutineScope(Dispatchers.Main)
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
@@ -180,6 +182,26 @@ class MainActivity : FlutterActivity() {
                                 result.success(hashes)
                             } catch (e: Exception) {
                                 result.error("HASH_FAILED", e.message, null)
+                            }
+                        }
+                    }
+                    else -> result.notImplemented()
+                }
+            }
+
+        // --- MethodChannel: blur detector engine (REQ-BLR-01) ---
+        blurDetectorEngine = BlurDetectorEngine(applicationContext)
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, BLUR_CHANNEL)
+            .setMethodCallHandler { call, result ->
+                when (call.method) {
+                    "computeBatchBlurScores" -> {
+                        val uris = call.argument<List<String>>("uris") ?: emptyList()
+                        scope.launch {
+                            try {
+                                val scores = blurDetectorEngine.computeBatchBlur(uris)
+                                result.success(scores)
+                            } catch (e: Exception) {
+                                result.error("BLUR_FAILED", e.message, null)
                             }
                         }
                     }

@@ -19,6 +19,7 @@ import '../../features/clean/presentation/large_videos_screen.dart';
 import '../../features/clean/presentation/screenshots_screen.dart';
 import '../../features/clean/presentation/old_media_screen.dart';
 import '../../features/clean/presentation/similar_photos_screen.dart';
+import '../../features/clean/presentation/blurry_photos_screen.dart';
 import '../../features/clean/data/all_indexed_media_data_source.dart';
 import '../../features/organize/presentation/organize_screen.dart';
 import '../../features/bin/presentation/bin_screen.dart';
@@ -51,6 +52,7 @@ class AppRoutes {
   static const screenshots = '/clean/screenshots';
   static const oldMedia = '/clean/old-media';
   static const similarPhotos = '/clean/similar-photos';
+  static const blurryPhotos = '/clean/blurry-photos';
   static const cleanupSuccess = '/clean/success';
   static const organize = '/organize';
   static const bin = '/bin';
@@ -142,6 +144,10 @@ final appRouter = GoRouter(
                 GoRoute(
                   path: 'similar-photos',
                   builder: (context, state) => const SimilarPhotosScreen(),
+                ),
+                GoRoute(
+                  path: 'blurry-photos',
+                  builder: (context, state) => const BlurryPhotosScreen(),
                 ),
                 GoRoute(
                   path: 'success',
