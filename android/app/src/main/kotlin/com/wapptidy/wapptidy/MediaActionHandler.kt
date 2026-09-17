@@ -365,7 +365,7 @@ class MediaActionHandler(
         for (collection in collections) {
             try {
                 val bundle = Bundle().apply {
-                    putInt(MediaStore.QUERY_ARG_MATCH_TRASHED, MediaStore.MATCH_TRASHED)
+                    putInt("android:query-arg-match-trashed", 1)
                     putString(ContentResolver.QUERY_ARG_SQL_SELECTION, "${MediaStore.MediaColumns.IS_TRASHED} = 1")
                     putString(ContentResolver.QUERY_ARG_SQL_SORT_ORDER, "${MediaStore.MediaColumns.DATE_MODIFIED} DESC")
                 }

@@ -1,4 +1,4 @@
-﻿package com.wapptidy.wapptidy
+package com.wapptidy.wapptidy
 
 /*
  * NotificationHelper.kt
@@ -18,9 +18,9 @@ import java.util.Calendar
 
 object NotificationHelper {
 
-    const val CHANNEL_STORAGE_ALERTS = wapptidy_storage_alerts
-    const val CHANNEL_SCAN_REMINDERS = wapptidy_scan_reminders
-    const val CHANNEL_WEEKLY_TIPS    = wapptidy_weekly_tips
+    const val CHANNEL_STORAGE_ALERTS = "wapptidy_storage_alerts"
+    const val CHANNEL_SCAN_REMINDERS = "wapptidy_scan_reminders"
+    const val CHANNEL_WEEKLY_TIPS    = "wapptidy_weekly_tips"
 
     fun createNotificationChannels(context: Context) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -28,26 +28,26 @@ object NotificationHelper {
 
             val storageChannel = NotificationChannel(
                 CHANNEL_STORAGE_ALERTS,
-                Storage Alerts,
+                "Storage Alerts",
                 NotificationManager.IMPORTANCE_HIGH
             ).apply {
-                description = Alerts when WhatsApp media consumes critical storage
+                description = "Alerts when WhatsApp media consumes critical storage"
             }
 
             val scanChannel = NotificationChannel(
                 CHANNEL_SCAN_REMINDERS,
-                Scan Reminders,
+                "Scan Reminders",
                 NotificationManager.IMPORTANCE_DEFAULT
             ).apply {
-                description = Periodic reminders to review detected cleanup opportunities
+                description = "Periodic reminders to review detected cleanup opportunities"
             }
 
             val tipsChannel = NotificationChannel(
                 CHANNEL_WEEKLY_TIPS,
-                Weekly Hygiene Tips,
+                "Weekly Hygiene Tips",
                 NotificationManager.IMPORTANCE_LOW
             ).apply {
-                description = Helpful tips to keep your device storage tidy
+                description = "Helpful tips to keep your device storage tidy"
             }
 
             notificationManager.createNotificationChannels(listOf(storageChannel, scanChannel, tipsChannel))
