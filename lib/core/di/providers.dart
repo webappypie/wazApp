@@ -25,6 +25,8 @@ import '../services/purchases/app_purchase_service.dart';
 import '../services/purchases/purchase_service.dart';
 import '../services/remote_config/remote_config_service.dart';
 import '../services/remote_config/fake_remote_config_service.dart';
+import '../services/notifications/notification_service.dart';
+import '../services/notifications/fake_notification_service.dart';
 import '../services/onboarding/onboarding_service.dart';
 import '../services/onboarding/real_onboarding_service.dart';
 
@@ -85,6 +87,10 @@ final backgroundTaskServiceProvider = Provider<BackgroundTaskService>(
 
 final onboardingServiceProvider = Provider<OnboardingService>(
   (ref) => RealOnboardingService(),
+);
+
+final notificationServiceProvider = Provider<NotificationService>(
+  (ref) => FakeNotificationService(),
 );
 
 final mediaActionCoordinatorProvider = Provider<MediaActionCoordinator>((ref) {

@@ -21,6 +21,14 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 
+import androidx.core.app.NotificationManagerCompat
+import androidx.work.Constraints
+import androidx.work.ExistingPeriodicWorkPolicy
+import androidx.work.NetworkType
+import androidx.work.PeriodicWorkRequestBuilder
+import androidx.work.WorkManager
+import java.util.concurrent.TimeUnit
+
 class MainActivity : FlutterActivity() {
 
     companion object {
@@ -32,6 +40,8 @@ class MainActivity : FlutterActivity() {
         private const val BLUR_CHANNEL      = "com.wapptidy/blur_detector"
         private const val COMPRESSOR_CHANNEL = "com.wapptidy/video_compressor"
         private const val COMPRESSOR_EVENTS  = "com.wapptidy/video_compressor_events"
+        private const val BACKGROUND_CHANNEL = "com.wapptidy/background_work"
+        private const val NOTIFICATION_CHANNEL = "com.wapptidy/notifications"
     }
 
     private lateinit var mediaIndexer: MediaIndexer
@@ -261,6 +271,89 @@ class MainActivity : FlutterActivity() {
                     }
                     "cancelCompression" -> {
                         videoCompressorEngine.cancel()
+                        result.success(null)
+                    }
+                    else -> result.notImplemented()
+                }
+            }
+
+        // --- Notification channels initialization ---
+        NotificationHelper.createNotificationChannels(applicationContext)
+
+        // --- MethodChannel: WorkManager background tasks (REQ-SET-04, P-02) ---
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, BACKGROUND_CHANNEL)
+            .setMethodCallHandler { call, result ->
+                when (call.method) {
+                    "scheduleScan" -> {
+                        val intervalHours = (call.argument<Number>("intervalHours") ?: 24).toLong()
+                        val chargingOnly  = call.argument<Boolean>("chargingOnly") ?: true
+
+                        val constraints = Constraints.Builder()
+                            .setRequiresCharging(chargingOnly)
+                            .setRequiresBatteryNotLow(true)
+                            .setRequiredNetworkType(NetworkType.NOT_REQUIRED)
+                            .build()
+
+                        val request = PeriodicWorkRequestBuilder<BackgroundScanWorker>(
+                            intervalHours, TimeUnit.HOURS
+                        )
+                            .setConstraints(constraints)
+                            .addTag(BackgroundScanWorker.WORK_TAG)
+                            .build()
+
+                        WorkManager.getInstance(applicationContext).enqueueUniquePeriodicWork(
+                            BackgroundScanWorker.WORK_TAG,
+                            ExistingPeriodicWorkPolicy.UPDATE,
+                            request
+                        )
+                        result.success(null)
+                    }
+                    "cancelScan" -> {
+                        WorkManager.getInstance(applicationContext)
+                            .cancelUniqueWork(BackgroundScanWorker.WORK_TAG)
+                        result.success(null)
+                    }
+                    "isScheduled" -> {
+                        scope.launch(Dispatchers.IO) {
+                            val workInfos = WorkManager.getInstance(applicationContext)
+                                .getWorkInfosForUniqueWork(BackgroundScanWorker.WORK_TAG)
+                                .get()
+                            val isScheduled = workInfos.any {
+                                !it.state.isFinished
+                            }
+                            scope.launch(Dispatchers.Main) {
+                                result.success(isScheduled)
+                            }
+                        }
+                    }
+                    else -> result.notImplemented()
+                }
+            }
+
+        // --- MethodChannel: Notifications (REQ-SET-05) ---
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, NOTIFICATION_CHANNEL)
+            .setMethodCallHandler { call, result ->
+                when (call.method) {
+                    "requestPermission", "hasPermission" -> {
+                        val enabled = NotificationManagerCompat.from(applicationContext).areNotificationsEnabled()
+                        result.success(enabled)
+                    }
+                    "showNotification" -> {
+                        val id = (call.argument<Number>("id") ?: 1).toInt()
+                        val channelId = call.argument<String>("channelId") ?: NotificationHelper.CHANNEL_STORAGE_ALERTS
+                        val title = call.argument<String>("title") ?: "WappTidy"
+                        val body = call.argument<String>("body") ?: ""
+                        val posted = NotificationHelper.showNotification(
+                            applicationContext,
+                            id,
+                            channelId,
+                            title,
+                            body
+                        )
+                        result.success(posted)
+                    }
+                    "cancelAll" -> {
+                        NotificationManagerCompat.from(applicationContext).cancelAll()
                         result.success(null)
                     }
                     else -> result.notImplemented()

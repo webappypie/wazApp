@@ -207,6 +207,13 @@ class SettingsScreen extends ConsumerWidget {
                 value: settings.notifyWeeklyTips,
                 onChanged: (val) => notifier.setNotificationToggle(notifyTips: val),
               ),
+              const Divider(height: 1),
+              SwitchListTile.adaptive(
+                title: const Text('Quiet hours (10 PM – 8 AM)'),
+                subtitle: const Text('Mute non-urgent notifications late at night'),
+                value: settings.quietHoursEnabled,
+                onChanged: notifier.setQuietHoursEnabled,
+              ),
             ],
           ),
 

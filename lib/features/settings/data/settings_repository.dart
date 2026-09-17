@@ -24,6 +24,9 @@ class SettingsRepository {
   static const _keyNotifyScan = 'settings_notify_scan_reminders';
   static const _keyNotifyStorage = 'settings_notify_storage_alerts';
   static const _keyNotifyTips = 'settings_notify_weekly_tips';
+  static const _keyQuietHoursEnabled = 'settings_quiet_hours_enabled';
+  static const _keyQuietHoursStart = 'settings_quiet_hours_start';
+  static const _keyQuietHoursEnd = 'settings_quiet_hours_end';
 
   Future<SharedPreferences> _getPrefs() async {
     return _prefs ??= await SharedPreferences.getInstance();
@@ -56,6 +59,9 @@ class SettingsRepository {
     final notifyScan = prefs.getBool(_keyNotifyScan) ?? false;
     final notifyStorage = prefs.getBool(_keyNotifyStorage) ?? true;
     final notifyTips = prefs.getBool(_keyNotifyTips) ?? false;
+    final quietHoursEnabled = prefs.getBool(_keyQuietHoursEnabled) ?? true;
+    final quietHoursStart = prefs.getInt(_keyQuietHoursStart) ?? 22;
+    final quietHoursEnd = prefs.getInt(_keyQuietHoursEnd) ?? 8;
 
     return SettingsState(
       themePreference: theme,
@@ -66,6 +72,9 @@ class SettingsRepository {
       notifyScanReminders: notifyScan,
       notifyStorageAlerts: notifyStorage,
       notifyWeeklyTips: notifyTips,
+      quietHoursEnabled: quietHoursEnabled,
+      quietHoursStartHour: quietHoursStart,
+      quietHoursEndHour: quietHoursEnd,
     );
   }
 
@@ -103,6 +112,21 @@ class SettingsRepository {
     await prefs.setBool(_keyNotifyScan, notifyScan);
     await prefs.setBool(_keyNotifyStorage, notifyStorage);
     await prefs.setBool(_keyNotifyTips, notifyTips);
+  }
+
+  Future<void> saveQuietHours({
+    required bool enabled,
+    int? startHour,
+    int? endHour,
+  }) async {
+    final prefs = await _getPrefs();
+    await prefs.setBool(_keyQuietHoursEnabled, enabled);
+    if (startHour != null) {
+      await prefs.setInt(_keyQuietHoursStart, startHour);
+    }
+    if (endHour != null) {
+      await prefs.setInt(_keyQuietHoursEnd, endHour);
+    }
   }
 
   /// Clears analysis history per REQ-SET-06.

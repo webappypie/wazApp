@@ -64,6 +64,9 @@ class SettingsState {
     this.notifyScanReminders = false,
     this.notifyStorageAlerts = true,
     this.notifyWeeklyTips = false,
+    this.quietHoursEnabled = true,
+    this.quietHoursStartHour = 22,
+    this.quietHoursEndHour = 8,
   });
 
   final AppThemePreference themePreference;
@@ -74,6 +77,9 @@ class SettingsState {
   final bool notifyScanReminders;
   final bool notifyStorageAlerts;
   final bool notifyWeeklyTips;
+  final bool quietHoursEnabled;
+  final int quietHoursStartHour;
+  final int quietHoursEndHour;
 
   SettingsState copyWith({
     AppThemePreference? themePreference,
@@ -84,6 +90,9 @@ class SettingsState {
     bool? notifyScanReminders,
     bool? notifyStorageAlerts,
     bool? notifyWeeklyTips,
+    bool? quietHoursEnabled,
+    int? quietHoursStartHour,
+    int? quietHoursEndHour,
   }) {
     return SettingsState(
       themePreference: themePreference ?? this.themePreference,
@@ -94,6 +103,9 @@ class SettingsState {
       notifyScanReminders: notifyScanReminders ?? this.notifyScanReminders,
       notifyStorageAlerts: notifyStorageAlerts ?? this.notifyStorageAlerts,
       notifyWeeklyTips: notifyWeeklyTips ?? this.notifyWeeklyTips,
+      quietHoursEnabled: quietHoursEnabled ?? this.quietHoursEnabled,
+      quietHoursStartHour: quietHoursStartHour ?? this.quietHoursStartHour,
+      quietHoursEndHour: quietHoursEndHour ?? this.quietHoursEndHour,
     );
   }
 }

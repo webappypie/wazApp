@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/di/providers.dart';
+import '../../../core/services/background_task/background_task_service.dart';
 import '../data/settings_repository.dart';
 import '../domain/settings_state.dart';
 
@@ -26,6 +27,25 @@ class SettingsNotifier extends Notifier<SettingsState> {
   Future<void> _load() async {
     final settings = await _repo.loadSettings();
     state = settings;
+    await _syncBackgroundScan();
+  }
+
+  Future<void> _syncBackgroundScan() async {
+    final bgService = ref.read(backgroundTaskServiceProvider);
+    if (state.scanFrequency == ScanFrequency.off) {
+      await bgService.cancelBackgroundScan();
+    } else {
+      final schedule = switch (state.scanFrequency) {
+        ScanFrequency.daily => ScanSchedule.daily,
+        ScanFrequency.every3Days => ScanSchedule.everyThreeDays,
+        ScanFrequency.weekly => ScanSchedule.weekly,
+        ScanFrequency.off => ScanSchedule.weekly,
+      };
+      await bgService.scheduleBackgroundScan(
+        schedule: schedule,
+        chargingOnly: state.scanChargingOnly,
+      );
+    }
   }
 
   Future<void> setThemePreference(AppThemePreference theme) async {
@@ -36,11 +56,22 @@ class SettingsNotifier extends Notifier<SettingsState> {
   Future<void> setScanFrequency(ScanFrequency freq) async {
     state = state.copyWith(scanFrequency: freq);
     await _repo.saveScanFrequency(freq);
+    await _syncBackgroundScan();
   }
 
   Future<void> setScanChargingOnly(bool chargingOnly) async {
     state = state.copyWith(scanChargingOnly: chargingOnly);
     await _repo.saveScanChargingOnly(chargingOnly);
+    await _syncBackgroundScan();
+  }
+
+  Future<void> setQuietHoursEnabled(bool enabled) async {
+    state = state.copyWith(quietHoursEnabled: enabled);
+    await _repo.saveQuietHours(
+      enabled: enabled,
+      startHour: state.quietHoursStartHour,
+      endHour: state.quietHoursEndHour,
+    );
   }
 
   Future<void> setDuplicateKeepRule(DuplicateKeepRule rule) async {
