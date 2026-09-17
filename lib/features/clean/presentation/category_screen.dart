@@ -7,14 +7,19 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:go_router/go_router.dart';
+
 import '../../../core/design/tokens.dart';
 import '../../../core/di/providers.dart';
+import '../../../core/router/app_router.dart';
+import '../../../core/services/backup/cloud_backup_service.dart';
 import '../../../core/widgets/action_widgets.dart';
 import '../../../core/widgets/app_scaffold.dart';
 import '../../../core/widgets/filter_chip.dart';
 import '../../../core/widgets/media_tiles.dart';
 import '../../../core/widgets/partial_access_banner.dart';
 import '../../../core/widgets/state_widgets.dart';
+import '../../backup/presentation/backup_controller.dart';
 import '../domain/category_data_source.dart';
 import '../domain/category_models.dart';
 import 'cleanup_success_screen.dart';
@@ -242,6 +247,12 @@ class _CategoryScreenState extends ConsumerState<CategoryScreen> {
                 subtitle: const Text('Move to Pictures/WappTidy Organized'),
                 onTap: () => Navigator.of(ctx).pop('move'),
               ),
+              ListTile(
+                leading: const Icon(Icons.cloud_upload_outlined),
+                title: const Text('Back up to Google Drive'),
+                subtitle: const Text('Copy to Google Drive (drive.file scope)'),
+                onTap: () => Navigator.of(ctx).pop('backup'),
+              ),
             ],
           ),
         );
@@ -249,6 +260,20 @@ class _CategoryScreenState extends ConsumerState<CategoryScreen> {
     );
 
     if (action == null || !mounted) return;
+
+    if (action == 'backup') {
+      final backupItems = selected.map((item) => BackupMediaItem(
+        id: int.tryParse(item.id) ?? 0,
+        contentUri: item.contentUri,
+        displayName: item.displayName,
+        sizeBytes: item.sizeBytes,
+        mimeType: item.mimeType,
+        category: widget.title,
+      )).toList();
+      ref.read(backupControllerProvider.notifier).setCustomSelection(backupItems);
+      context.push(AppRoutes.cloudBackup);
+      return;
+    }
 
     final coordinator = ref.read(mediaActionCoordinatorProvider);
     final result = await coordinator.moveOrCopySelected(

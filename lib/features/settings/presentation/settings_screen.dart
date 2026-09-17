@@ -15,8 +15,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:go_router/go_router.dart';
+
 import '../../../core/design/tokens.dart';
 import '../../../core/di/providers.dart';
+import '../../../core/router/app_router.dart';
 import '../../../core/widgets/action_widgets.dart';
 import '../../../core/widgets/buttons.dart';
 import '../domain/settings_state.dart';
@@ -31,6 +34,7 @@ class SettingsScreen extends ConsumerWidget {
     final notifier = ref.read(settingsNotifierProvider.notifier);
     final isPremium = ref.watch(isPremiumProvider);
     final purchaseService = ref.watch(purchaseServiceProvider);
+    final cloudBackup = ref.watch(cloudBackupServiceProvider);
     final scheme = Theme.of(context).colorScheme;
 
     return Scaffold(
@@ -182,7 +186,45 @@ class SettingsScreen extends ConsumerWidget {
           const SizedBox(height: AppSpacing.lg),
 
           // -------------------------------------------------------------------
-          // 4. Notifications (REQ-SET-05)
+          // 4. Cloud Backup (REQ-BAK-01..03)
+          // -------------------------------------------------------------------
+          _SettingsSectionHeader(title: 'Cloud Backup', icon: Icons.cloud_upload_outlined),
+          _SettingsCard(
+            children: [
+              ListTile(
+                leading: Icon(
+                  Icons.backup_outlined,
+                  color: cloudBackup.currentAuthStatus.isConnected
+                      ? scheme.primary
+                      : scheme.outline,
+                ),
+                title: const Text('Google Drive Backup'),
+                subtitle: Text(
+                  cloudBackup.currentAuthStatus.isConnected
+                      ? 'Connected: ${cloudBackup.currentAuthStatus.account?.email ?? ""}'
+                      : 'Not connected • drive.file scope only',
+                ),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => context.push(AppRoutes.cloudBackup),
+              ),
+              const Divider(height: 1),
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.cardPadding,
+                  vertical: AppSpacing.sm,
+                ),
+                child: Text(
+                  '🔒 Safe backup: Uses drive.file scope only. Never deletes local originals automatically (REQ-BAK-01..03).',
+                  style: AppTextStyles.bodySmall.copyWith(color: scheme.outline),
+                ),
+              ),
+            ],
+          ),
+
+          const SizedBox(height: AppSpacing.lg),
+
+          // -------------------------------------------------------------------
+          // 5. Notifications (REQ-SET-05)
           // -------------------------------------------------------------------
           _SettingsSectionHeader(title: 'Notifications', icon: Icons.notifications_none_outlined),
           _SettingsCard(

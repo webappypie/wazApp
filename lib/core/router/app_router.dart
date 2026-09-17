@@ -26,6 +26,7 @@ import '../../features/clean/presentation/documents_screen.dart';
 import '../../features/analytics/presentation/storage_analytics_screen.dart';
 import '../../features/clean/data/all_indexed_media_data_source.dart';
 import '../../features/organize/presentation/organize_screen.dart';
+import '../../features/backup/presentation/backup_screen.dart';
 import '../../features/bin/presentation/bin_screen.dart';
 import '../../features/settings/presentation/settings_screen.dart';
 import '../../features/dev/presentation/gallery_screen.dart';
@@ -65,6 +66,7 @@ class AppRoutes {
   static const bin = '/bin';
   static const settings = '/settings';
   static const storageAnalytics = '/analytics';
+  static const cloudBackup = '/backup';
 
   /// Debug-only gallery route. Not reachable in release builds.
   static const devGallery = '/dev/gallery';
@@ -94,6 +96,12 @@ final appRouter = GoRouter(
     GoRoute(
       path: AppRoutes.permissionDenied,
       builder: (context, state) => const PermissionDeniedScreen(),
+    ),
+
+    // --- Google Drive Cloud Backup (REQ-BAK-01..03) ---
+    GoRoute(
+      path: AppRoutes.cloudBackup,
+      builder: (context, state) => const BackupScreen(),
     ),
 
     // --- Debug gallery (kDebugMode guard) ---

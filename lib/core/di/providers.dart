@@ -29,6 +29,8 @@ import '../services/notifications/notification_service.dart';
 import '../services/notifications/fake_notification_service.dart';
 import '../services/audio/audio_playback_service.dart';
 import '../services/audio/fake_audio_playback_service.dart';
+import '../services/backup/cloud_backup_service.dart';
+import '../services/backup/fake_cloud_backup_service.dart';
 import '../services/onboarding/onboarding_service.dart';
 import '../services/onboarding/real_onboarding_service.dart';
 
@@ -97,6 +99,10 @@ final notificationServiceProvider = Provider<NotificationService>(
 
 final audioPlaybackServiceProvider = Provider<AudioPlaybackService>(
   (ref) => FakeAudioPlaybackService(),
+);
+
+final cloudBackupServiceProvider = Provider<CloudBackupService>(
+  (ref) => FakeCloudBackupService(),
 );
 
 final mediaActionCoordinatorProvider = Provider<MediaActionCoordinator>((ref) {
