@@ -15,7 +15,7 @@ _Last updated: end of Phase 1 (2026-10-24, branch `feature/wazapp`)._
 | iOS Photos/Files import, library, share | P0 | partial | same Dart import path; iOS scaffold (`ios/`); Home shows import-only honest copy when status access unsupported | `home_screen_test.dart` (unsupported platform), import logic tests | **blocked-by-environment**: no Xcode; iOS video thumbnails not generated |
 | Import from Photos/Files (all platforms) | P0 | partial | `importFlow`, `LibraryService.importFiles` (type check, size verify, decode probe, rollback) | `library_service_test.dart` | picker UI unverified on device |
 | Local library: grid, filters (All/Photos/Videos/Favourites/Recent), search, favourites, multi-select, bulk favourite/share/export/delete with count confirmation | P0 | working (host) | `saved_screen.dart`, `library_models.dart` | `saved_screen_test.dart`, filter tests | device check |
-| Viewer (pinch-zoom photos, video controls only for video, favourite/share/export/delete/details, missing-file recovery) | P0 | partial | `viewer_screen.dart`, `status_preview_screen.dart` | no widget test for viewer yet; video_player unexercised | add viewer tests + device check |
+| Viewer (pinch-zoom photos, video controls only for video, favourite/share/export/delete/details, missing-file recovery) | P0 | partial | `viewer_screen.dart`, `status_preview_screen.dart` | `viewer_screen_test.dart` (photo viewer, favourite, details, missing file); video playback unexercised | video playback + device check |
 | Metadata integrity (missing files, interrupted writes) | P0 | working (host) | `reconcile()`, `.part` cleanup at startup, delete ordering | `library_service_test.dart` | call `reconcile()` periodically (not yet scheduled) |
 | Photo editor / export | P1 | missing | no code, no UI entry | – | Phase 2 |
 | Hindi/English status maker | P1 | missing | – | – | Phase 2 |
@@ -29,4 +29,4 @@ _Last updated: end of Phase 1 (2026-10-24, branch `feature/wazapp`)._
 | Theme (system/light/dark, persisted) | P1 | working (host) | `ThemeModeNotifier` | `onboarding_flow_test.dart` | – |
 | Offline core flows / privacy | P0 | working | no network code exists; INTERNET permission not declared | code review | re-verify after Phase 5 |
 | Release build / signing | P0 | partial | no silent debug signing; R8 rules updated | see RELEASE_EVIDENCE | keystore (B5) |
-| Automated tests | P0 | working | 48 tests (library 22, status 10, saved screen 6, onboarding 5, core 5) | `flutter test` all pass | add viewer/native tests |
+| Automated tests | P0 | working | 51 tests (library service 22, saved screen 6, viewer 3, status home 10, onboarding/settings 5, core 5) | `flutter test` all pass | add viewer/native tests |
