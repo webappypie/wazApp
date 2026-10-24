@@ -1,4 +1,4 @@
-# Proguard / R8 rules for WappTidy Release Packaging
+# Proguard / R8 rules for WazApp release builds
 
 # Flutter engine and plugin wrappers
 -keep class io.flutter.app.** { *; }
@@ -8,21 +8,13 @@
 -keep class io.flutter.** { *; }
 -keep class io.flutter.plugins.** { *; }
 
-# WappTidy Kotlin Native Bridge Classes
--keep class com.wapptidy.wapptidy.** { *; }
--keepclassmembers class com.wapptidy.wapptidy.** { *; }
-
-# AndroidX WorkManager (Background Scans & Maintenance)
--keep class androidx.work.** { *; }
--keep class * extends androidx.work.Worker { *; }
--keep class * extends androidx.work.ListenableWorker { *; }
+# WazApp Kotlin native bridge (channel handlers are invoked reflectively by Flutter)
+-keep class com.webappypie.wazapp.** { *; }
 
 # SQLite3 / Drift native binding preservation
 -keep class org.sqlite.** { *; }
 -keep class sqlite3.** { *; }
--keep class com.simonbadges.** { *; }
 
-# Kotlin coroutines and annotations
 -keepattributes *Annotation*
 -keepattributes Signature
 -keepattributes InnerClasses
@@ -30,8 +22,5 @@
 -dontwarn java.lang.instrument.**
 -dontwarn javax.annotation.**
 
-# Google Play In-App Billing
--keep class com.android.vending.billing.** { *; }
-
-# Android MediaStore reflection warnings
--dontwarn android.provider.MediaStore**
+# Flutter engine references Play Core deferred-components classes; WazApp does not use deferred components.
+-dontwarn com.google.android.play.core.**

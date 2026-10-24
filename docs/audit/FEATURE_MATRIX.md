@@ -1,39 +1,32 @@
-# Feature Matrix — Phase 0 baseline
+# Feature Matrix
 
-Date: 2026-10-24. Evidence is from reading the code at the working tree state described in `BASELINE_AUDIT.md`.
-Allowed statuses: working / partial / stubbed-fake / broken / missing / blocked-by-environment / not-applicable.
+Statuses: working / partial / stubbed-fake / broken / missing / blocked-by-environment / not-applicable.
+"Working" here means exercised by automated tests on the host; **nothing is device-verified yet** (see KNOWN_LIMITATIONS E5). The Phase 0 matrix (baseline, WappTidy) is preserved in git history at `3c18c57`.
 
-**Headline:** the repository is **WappTidy — Media Cleaner & Organizer** (Flutter package `wapptidy`, Android id
-`com.wapptidy.wapptidy`, 17 completed "phases" of a *cleaner*), not a status saver/editor. None of the WazApp P0/P1
-product exists yet. What exists is reusable infrastructure (Flutter/Riverpod/go_router/Drift, MediaStore indexer, bin,
-design tokens, settings, tests).
+_Last updated: end of Phase 1 (2026-10-24, branch `feature/wazapp`)._
 
-| Feature | Priority | Status | Evidence / files | Test / reproduction | Blocker / next action |
+| Feature | Pri | Status | Evidence / files | Verification | Blocker / next |
 |---|---|---|---|---|---|
-| Brand / app identity (WazApp, `com.webappypie.wazapp`) | P0 | missing | `pubspec.yaml` name `wapptidy`; `android/app/build.gradle.kts` `applicationId = "com.wapptidy.wapptidy"`; manifest label `WappTidy`; Kotlin package `com.wapptidy.wapptidy`; channels `com.wapptidy/*`; `lib/app.dart` `WappTidyApp` | grep | Owner decision D1 (see BASELINE_AUDIT) |
-| Startup / navigation | P0 | partial | `lib/main.dart`, `lib/core/router/app_router.dart` (splash → onboarding → permission flow → 5-tab shell Home/Clean/Organize/Bin/Settings). Works for the cleaner; wrong destinations for WazApp. No Firebase/WAPCentral init, no service-status gate | code read | Re-map tabs to Home/Saved/Create/Private/Tools |
-| Onboarding & permissions | P0 | partial | `features/onboarding/*`, `RealMediaAccessService` (permission_handler photos/videos/audio/storage). Android 13/14 partial access handled. Copy is cleaner-oriented | `test/features/onboarding/permission_flow_test.dart` | Rewrite copy; add status-folder access rationale (SAF) |
-| Android status discovery/save | P0 | **missing** | No reference to `.Statuses` anywhere (`grep -ri statuses android lib` = no hit). Indexer (`MediaIndexer.kt`) lists *received* WhatsApp media folders ("WhatsApp Images" …) through MediaStore, plus `File` fallback to `Android/media/com.whatsapp/...` (not status). No SAF / `OpenDocumentTree`, no persisted URI permission, no save/copy-with-verification flow | grep, code read | Phase 1: SAF tree access for `Android/media/com.whatsapp*/WhatsApp*/Media/.Statuses`, per-app validation |
-| iOS Photos/Files import, library, export, share | P0 | **missing** | No `ios/` directory exists (`ls ios` → not found); no iOS code, no `GoogleService-Info.plist` placement possible | `ls` | Must `flutter create --platforms=ios` (owner-approved); needs macOS/Xcode for verification (not available on this Windows host) |
-| Local library / viewer / search / favourites / bulk actions | P0 | partial | `features/search`, `features/clean/presentation/category_screen.dart`, `media_preview_sheet.dart`, `MediaItems` table (indexed *WhatsApp-received* media, MediaStore URIs). No favourites column/flag, no "saved status" library, no in-app full-screen viewer with video player (no video_player dep), no recents | tests under `test/features/search`, `clean` | Build WazApp library on a new `saved_media` model |
-| Photo editor / export | P1 | missing | No editor code, no image-manipulation deps | grep | Phase 2 |
-| Video editor / export | P1 | missing | Only `VideoCompressorEngine.kt` (cleaner compression, MethodChannel `video_compressor`); no trim/crop/mute/text overlay, no preview player | code read | Phase 3; choose Media3 Transformer vs FFmpeg (ADR) |
-| Hindi/English status maker | P1 | missing | No text-status code, no fonts bundled | grep | Phase 2 |
-| Private Folder | P1 | missing | No private storage / local_auth | grep pubspec | Phase 4 |
-| Storage Manager | P1 | partial | Duplicate detection (`DuplicateDetector.kt`, 2-stage hash), large videos, similar photos, blur, analytics, Bin (soft-delete) — operate on WhatsApp-received media, not WazApp-managed storage. Duplicates only warn — good. | `test/features/clean/*`, `analytics/*` | Re-scope to WazApp-managed storage totals |
-| Cloud backup (Google Drive) | out of scope | **stubbed-fake (must remove)** | `PlatformCloudBackupService` falls back to `FakeCloudBackupService` on every call; signIn returns fake `user@gmail.com`; no google_sign_in/Drive dependency; progress is simulated. **MASTER_PRD non-goal: no cloud backup** | `lib/core/services/backup/*`, `features/backup/*`, settings text claims "Safe backup … drive.file" | Remove feature + route + settings section |
-| WAPCentral service-control | P1 | missing | no reference to `wapcentral` in repo | grep | SDK/packages unavailable — see Blocker B1 |
-| WAPCentral notifications (FCM register + feed) | P1 | missing / stubbed-fake | `notificationServiceProvider` → `FakeNotificationService`; `PlatformNotificationService` (local channel only, `NotificationHelper.kt`) is a local scan-complete notifier, not FCM; no `firebase_messaging`; `firebase_core`/`firebase_remote_config` listed in pubspec but `Firebase.initializeApp` is never called; no `google-services` Gradle plugin | grep `Firebase` | Blocker B1 (SDKs) + B2 (config placement) |
-| Ads (AdMob via WAPCentral) | P1 | stubbed-fake | `adsServiceProvider` → `FakeAdsService` (never shows ads). `AdManager` policy engine is real/tested but wired to fake service + `FakeRemoteConfigService`. No `google_mobile_ads`, no manifest APPLICATION_ID | `ad_manager_test.dart` | Blocker B1; guide has conflicting ID guidance (see BASELINE_AUDIT §Guide conflicts) |
-| Promotions (`wap_promo_sdk`) | P1 | missing | no code | grep | Blocker B1 |
-| Remove Ads purchase / restore / revocation | P1 | **stubbed-fake (P0 integrity)** | `AppPurchaseService.purchase()` calls `setEntitlement(premium)` immediately with **no store call**; entitlement cached in SharedPreferences as plaintext string; `restorePurchases` just re-reads that cache. No `in_app_purchase` dependency. Settings shows "Upgrade" → instantly grants Premium | `lib/core/services/purchases/app_purchase_service.dart:63-77`, `settings_screen.dart:428` | Blocker B3 (product ID) for sandbox; implement real billing + revalidation |
-| Remote Config (Firebase) | n/a | stubbed-fake | `remoteConfigServiceProvider` → `FakeRemoteConfigService` (all ads flags default **false**); `FirebaseRemoteConfigService` never written despite comment | providers.dart:65 | Replace with WAPCentral config |
-| Analytics | n/a | stubbed-fake | `FakeAnalyticsService` in prod provider (no-op). Acceptable for privacy; remove or keep no-op deliberately | providers.dart:61 | decide |
-| Background scheduled scans | n/a | stubbed-fake in DI | `backgroundTaskServiceProvider` → `FakeBackgroundTaskService`; native WorkManager worker exists but UI toggles don't reach it | providers.dart:96 | Re-evaluate need for WazApp |
-| Audio playback preview | n/a | stubbed-fake in DI | `audioPlaybackServiceProvider` → `FakeAudioPlaybackService` (voice notes preview does nothing real) | providers.dart:108 | Not WazApp scope; remove |
-| Settings (theme etc.) | P1 | partial | `features/settings/*`; persistent via SharedPreferences | `settings_test.dart` | Re-skin |
-| Design system | P1 | partial | `core/design/tokens.dart`, shared widgets; palette is cleaner-oriented, not the WazApp teal/green spec | read | Re-theme to #075E54/#128C7E/#25D366 |
-| Accessibility | P1 | unknown | not audited on device | | Phase 6 |
-| Offline core flows / privacy | P0 | partial | Core indexing local; no network code at all today. Manifest has `INTERNET` + `ACCESS_NETWORK_STATE`. `android:requestLegacyExternalStorage="true"` is a no-op on target 36 | manifest | OK direction; verify after WAPCentral |
-| Tests | P0 | partial | 28 test files, many assert Fake behaviour (tests of fakes are not evidence for real features) | `flutter test` | See BASELINE_AUDIT |
-| Release build / signing | P0 | partial | `key.properties.example`, R8 enabled, falls back to **debug signing** when `key.properties` absent (release AAB would be debug-signed) | `build.gradle.kts:52-65` | Fail the build instead of silently debug-signing; owner supplies keystore |
+| Identity (WazApp, `com.webappypie.wazapp` / `.ios`) | P0 | working | `build.gradle.kts`, Kotlin pkg, `pubspec.yaml`, iOS `project.pbxproj` | debug APK builds; iOS not built | none |
+| Startup / navigation | P0 | working | `main.dart`, `app_router.dart` (splash → onboarding → 3-tab shell; bad-route guard) | `onboarding_flow_test.dart` | Create/Private tabs added with their phases |
+| Onboarding & permissions | P0 | working | `onboarding_screen.dart`; no runtime permission needed (SAF + pickers); no false "granted" claims | `onboarding_flow_test.dart` | notification opt-in comes with Phase 5 |
+| Android status discovery (WhatsApp / Business separate) | P0 | partial | `StatusAccessHandler.kt` (SAF tree grant, persisted permission, wrong-folder validation, listing), `home_screen.dart` access setup, rescan on resume, pull-to-refresh | Dart side: `home_screen_test.dart` (fake bridge); native: **compiled only** | **blocked-by-environment**: install on phone refused (E5); no statuses present (E6); Android 11/12/14 not available |
+| Save status (single/multi, progress, cancel, retry, partial failure, duplicates) | P0 | partial | `LibraryService.saveStatus(es)`, native verified copy (`.part`+size+decode), `library_actions.dart` | `library_service_test.dart` (21), `home_screen_test.dart` | native copy unverified on device |
+| iOS Photos/Files import, library, share | P0 | partial | same Dart import path; iOS scaffold (`ios/`); Home shows import-only honest copy when status access unsupported | `home_screen_test.dart` (unsupported platform), import logic tests | **blocked-by-environment**: no Xcode; iOS video thumbnails not generated |
+| Import from Photos/Files (all platforms) | P0 | partial | `importFlow`, `LibraryService.importFiles` (type check, size verify, decode probe, rollback) | `library_service_test.dart` | picker UI unverified on device |
+| Local library: grid, filters (All/Photos/Videos/Favourites/Recent), search, favourites, multi-select, bulk favourite/share/export/delete with count confirmation | P0 | working (host) | `saved_screen.dart`, `library_models.dart` | `saved_screen_test.dart`, filter tests | device check |
+| Viewer (pinch-zoom photos, video controls only for video, favourite/share/export/delete/details, missing-file recovery) | P0 | partial | `viewer_screen.dart`, `status_preview_screen.dart` | no widget test for viewer yet; video_player unexercised | add viewer tests + device check |
+| Metadata integrity (missing files, interrupted writes) | P0 | working (host) | `reconcile()`, `.part` cleanup at startup, delete ordering | `library_service_test.dart` | call `reconcile()` periodically (not yet scheduled) |
+| Photo editor / export | P1 | missing | no code, no UI entry | – | Phase 2 |
+| Hindi/English status maker | P1 | missing | – | – | Phase 2 |
+| Video editor / export | P1 | missing | – | – | Phase 3 |
+| Private Folder | P1 | missing (schema column `isPrivate` reserved, excluded from library queries) | `saved_media_table.dart`, test "excludes private items" | – | Phase 4 |
+| Storage Manager | P1 | partial | Settings shows WazApp library count/size (`usedBytes`) | manual calc only | duplicates/large files/bulk delete → Phase 4 |
+| WAPCentral service control / ads / notifications / promotions | P1 | missing | no integration code (SDKs unavailable, B1) | – | Phase 5, blocked by B1/B4 |
+| Remove Ads purchase / restore / entitlement | P1 | missing (fake grant removed) | – | – | Phase 5, blocked by B3 |
+| Cloud backup | out of scope | removed | – | – | – |
+| Accessibility | P1 | partial | semantic labels on tiles/controls, ≥48 dp targets via tokens; not audited with TalkBack/large text | – | Phase 6 |
+| Theme (system/light/dark, persisted) | P1 | working (host) | `ThemeModeNotifier` | `onboarding_flow_test.dart` | – |
+| Offline core flows / privacy | P0 | working | no network code exists; INTERNET permission not declared | code review | re-verify after Phase 5 |
+| Release build / signing | P0 | partial | no silent debug signing; R8 rules updated | see RELEASE_EVIDENCE | keystore (B5) |
+| Automated tests | P0 | working | 48 tests (library 22, status 10, saved screen 6, onboarding 5, core 5) | `flutter test` all pass | add viewer/native tests |

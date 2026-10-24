@@ -7,7 +7,7 @@ import 'package:flutter/material.dart';
 
 import '../design/tokens.dart';
 
-/// Standard scaffold for all WappTidy screens.
+/// Standard scaffold for all WazApp screens.
 ///
 /// Provides:
 /// - Correct background colour from theme

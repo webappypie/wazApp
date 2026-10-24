@@ -1,11 +1,7 @@
 // lib/features/onboarding/presentation/splash_screen.dart
 //
-// REQ-ONB-01: Logo, name, tagline. Duration 1.2–1.6s then navigate.
-// No fade-in to avoid perception of slowness; instant display.
-// Timer is not cancellable — if onboarding check completes faster than
-// the minimum, we still wait out the minimum to avoid a flash.
-
-import 'dart:async';
+// Routes to onboarding or home as soon as the (local) onboarding flag is read.
+// No artificial delay.
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -23,9 +19,6 @@ class SplashScreen extends ConsumerStatefulWidget {
 }
 
 class _SplashScreenState extends ConsumerState<SplashScreen> {
-  static const _kMinSplashMs = 1200;
-  static const _kMaxSplashMs = 1600;
-
   @override
   void initState() {
     super.initState();
@@ -33,68 +26,60 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
   }
 
   Future<void> _navigate() async {
-    // Run the minimum splash and the onboarding check in parallel.
-    final results = await Future.wait([
-      Future<bool>.delayed(const Duration(milliseconds: _kMinSplashMs), () => true),
-      ref.read(onboardingServiceProvider).hasCompletedOnboarding(),
-    ]);
-
-    // Ensure we don't exceed the maximum splash duration regardless of how
-    // quickly the check completed.
-    await Future.delayed(const Duration(milliseconds: _kMaxSplashMs - _kMinSplashMs));
-
-    if (!mounted) return;
-
-    final hasOnboarded = results[1];
-    if (hasOnboarded) {
-      context.go(AppRoutes.home);
-    } else {
-      context.go(AppRoutes.onboarding);
+    bool done;
+    try {
+      done = await ref.read(onboardingServiceProvider).hasCompletedOnboarding();
+    } catch (_) {
+      done = false;
     }
+    if (!mounted) return;
+    context.go(done ? AppRoutes.home : AppRoutes.onboarding);
   }
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     return Scaffold(
-      backgroundColor: scheme.primary,
-      body: SafeArea(
-        child: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              // App icon placeholder — Phase 8 replaces with real asset
-              Container(
-                width: 88,
-                height: 88,
-                decoration: BoxDecoration(
-                  color: scheme.onPrimary.withValues(alpha: 0.15),
-                  borderRadius: const BorderRadius.all(Radius.circular(AppRadius.xl)),
-                ),
-                child: Icon(
-                  Icons.cleaning_services_rounded,
-                  size: 48,
-                  color: scheme.onPrimary,
-                ),
-              ),
-              const SizedBox(height: AppSpacing.lg),
-              Text(
-                'WappTidy',
-                style: AppTextStyles.headlineLarge.copyWith(
-                  color: scheme.onPrimary,
-                  letterSpacing: -0.5,
-                ),
-              ),
-              const SizedBox(height: AppSpacing.sm),
-              Text(
-                'Clean. Organise. Recover.',
-                style: AppTextStyles.bodyMedium.copyWith(
-                  color: scheme.onPrimary.withValues(alpha: 0.75),
-                ),
-              ),
-            ],
-          ),
+      backgroundColor: kBrandDeepTeal,
+      body: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const AppMark(size: 88),
+            const SizedBox(height: AppSpacing.lg),
+            Text('WazApp',
+                style: AppTextStyles.headlineLarge.copyWith(color: scheme.onPrimary == Colors.white ? Colors.white : Colors.white)),
+            const SizedBox(height: AppSpacing.sm),
+            Text('Save. Style. Share.',
+                style: AppTextStyles.bodyMedium.copyWith(color: Colors.white.withValues(alpha: 0.8))),
+          ],
         ),
+      ),
+    );
+  }
+}
+
+/// Original WazApp mark: a rounded tile with a download arrow into a "status ring".
+class AppMark extends StatelessWidget {
+  const AppMark({super.key, this.size = 64});
+  final double size;
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      label: 'WazApp logo',
+      child: Container(
+        width: size,
+        height: size,
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            colors: [kBrandGreen, kBrandAccent],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(size * 0.28),
+        ),
+        child: Icon(Icons.download_rounded, size: size * 0.55, color: Colors.white),
       ),
     );
   }

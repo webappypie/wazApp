@@ -1,10 +1,10 @@
 // lib/core/design/tokens.dart
 //
-// Design tokens — the ONLY place colours, type scale, spacing, radii and
+// Design tokens - the ONLY place colours, type scale, spacing, radii and
 // elevation are defined. No widget may hardcode any of these values.
 //
-// Philosophy (PRD §9): premium finance/productivity aesthetic.
-// Generous whitespace, precise typography, subtle elevation, restrained cards.
+// Brand: original deep-teal / green "status" identity (docs/UI_UX_SPEC.md).
+// Not derived from any third-party logo or official asset.
 
 import 'package:flutter/material.dart';
 
@@ -12,95 +12,87 @@ import 'package:flutter/material.dart';
 // Colour palette
 // ---------------------------------------------------------------------------
 
-/// Brand primary — a calm, professional blue.
-const _kPrimary = Color(0xFF1C6EF2);
-const _kPrimaryContainer = Color(0xFFD6E4FF);
-const _kOnPrimaryContainer = Color(0xFF001A41);
+const kBrandDeepTeal = Color(0xFF075E54);
+const kBrandGreen = Color(0xFF128C7E);
+const kBrandAccent = Color(0xFF25D366);
 
-/// Surface variants
-const _kSurfaceLight = Color(0xFFF8F9FC);
-const _kSurfaceDark = Color(0xFF111318);
+const _kSurfaceLight = Color(0xFFF7FAF8);
+const _kSurfaceDark = Color(0xFF0E1412);
 const _kCardLight = Color(0xFFFFFFFF);
-const _kCardDark = Color(0xFF1E2128);
+const _kCardDark = Color(0xFF18211E);
 
-/// Semantic colours — same in both themes.
+/// Semantic colours - same in both themes.
 const kColorSuccess = Color(0xFF1E8A4C);
 const kColorWarning = Color(0xFFB45309);
 const kColorDestructive = Color(0xFFDC2626);
 const kColorDestructiveSurface = Color(0xFFFEF2F2);
 
-// ---------------------------------------------------------------------------
-// AppColorScheme — extends Material 3 ColorScheme with app-specific tokens
-// ---------------------------------------------------------------------------
-
 class AppColors {
   const AppColors._();
 
-  // --- Light scheme ---
   static const ColorScheme light = ColorScheme(
     brightness: Brightness.light,
-    primary: _kPrimary,
+    primary: kBrandDeepTeal,
     onPrimary: Color(0xFFFFFFFF),
-    primaryContainer: _kPrimaryContainer,
-    onPrimaryContainer: _kOnPrimaryContainer,
-    secondary: Color(0xFF3D5A8A),
+    primaryContainer: Color(0xFFCDEFE5),
+    onPrimaryContainer: Color(0xFF00201B),
+    secondary: kBrandGreen,
     onSecondary: Color(0xFFFFFFFF),
-    secondaryContainer: Color(0xFFD6E3FF),
-    onSecondaryContainer: Color(0xFF001B3D),
-    tertiary: Color(0xFF006A60),
+    secondaryContainer: Color(0xFFD5F0EA),
+    onSecondaryContainer: Color(0xFF00201C),
+    tertiary: Color(0xFF0B7A4B),
     onTertiary: Color(0xFFFFFFFF),
-    tertiaryContainer: Color(0xFF9EF2E4),
-    onTertiaryContainer: Color(0xFF00201C),
+    tertiaryContainer: Color(0xFFC4F5DA),
+    onTertiaryContainer: Color(0xFF002111),
     error: kColorDestructive,
     onError: Color(0xFFFFFFFF),
     errorContainer: Color(0xFFFFDAD6),
     onErrorContainer: Color(0xFF410002),
     surface: _kSurfaceLight,
-    onSurface: Color(0xFF1A1C1E),
-    surfaceContainerHighest: Color(0xFFE2E2E9),
-    onSurfaceVariant: Color(0xFF44474E),
-    outline: Color(0xFF74777F),
-    outlineVariant: Color(0xFFC4C6D0),
+    onSurface: Color(0xFF17211F),
+    surfaceContainerHighest: Color(0xFFE0E8E5),
+    onSurfaceVariant: Color(0xFF52605C),
+    outline: Color(0xFF6F7C78),
+    outlineVariant: Color(0xFFC2CDC9),
     shadow: Color(0xFF000000),
     scrim: Color(0xFF000000),
-    inverseSurface: Color(0xFF2F3033),
-    onInverseSurface: Color(0xFFF1F0F4),
-    inversePrimary: Color(0xFFABC7FF),
+    inverseSurface: Color(0xFF2C3532),
+    onInverseSurface: Color(0xFFEDF3F0),
+    inversePrimary: Color(0xFF5CD6BC),
   );
 
-  // --- Dark scheme ---
   static const ColorScheme dark = ColorScheme(
     brightness: Brightness.dark,
-    primary: Color(0xFFABC7FF),
-    onPrimary: Color(0xFF002F6B),
-    primaryContainer: Color(0xFF164399),
-    onPrimaryContainer: _kPrimaryContainer,
-    secondary: Color(0xFFAAC7FF),
-    onSecondary: Color(0xFF002F69),
-    secondaryContainer: Color(0xFF234377),
-    onSecondaryContainer: Color(0xFFD6E3FF),
-    tertiary: Color(0xFF82D5C8),
-    onTertiary: Color(0xFF003731),
-    tertiaryContainer: Color(0xFF004F47),
-    onTertiaryContainer: Color(0xFF9EF2E4),
+    primary: Color(0xFF5CD6BC),
+    onPrimary: Color(0xFF00382F),
+    primaryContainer: kBrandDeepTeal,
+    onPrimaryContainer: Color(0xFFB7F2E4),
+    secondary: Color(0xFF7FD6C9),
+    onSecondary: Color(0xFF003730),
+    secondaryContainer: Color(0xFF0B4F47),
+    onSecondaryContainer: Color(0xFFD5F0EA),
+    tertiary: kBrandAccent,
+    onTertiary: Color(0xFF00391A),
+    tertiaryContainer: Color(0xFF00522B),
+    onTertiaryContainer: Color(0xFFC4F5DA),
     error: Color(0xFFFFB4AB),
     onError: Color(0xFF690005),
     errorContainer: Color(0xFF93000A),
     onErrorContainer: Color(0xFFFFDAD6),
     surface: _kSurfaceDark,
-    onSurface: Color(0xFFE2E2E6),
-    surfaceContainerHighest: Color(0xFF43464E),
-    onSurfaceVariant: Color(0xFFC4C6D0),
-    outline: Color(0xFF8E9099),
-    outlineVariant: Color(0xFF44474E),
+    onSurface: Color(0xFFDDE5E1),
+    surfaceContainerHighest: Color(0xFF3B4743),
+    onSurfaceVariant: Color(0xFFBCC9C4),
+    outline: Color(0xFF86938F),
+    outlineVariant: Color(0xFF3F4A46),
     shadow: Color(0xFF000000),
     scrim: Color(0xFF000000),
-    inverseSurface: Color(0xFFE2E2E6),
-    onInverseSurface: Color(0xFF2F3033),
-    inversePrimary: _kPrimary,
+    inverseSurface: Color(0xFFDDE5E1),
+    onInverseSurface: Color(0xFF2C3532),
+    inversePrimary: kBrandDeepTeal,
   );
 
-  /// Card surface colour — use instead of colorScheme.surface for cards.
+  /// Card surface colour - use instead of colorScheme.surface for cards.
   static Color card(BuildContext context) =>
       Theme.of(context).brightness == Brightness.light ? _kCardLight : _kCardDark;
 }

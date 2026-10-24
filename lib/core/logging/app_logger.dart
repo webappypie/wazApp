@@ -1,6 +1,6 @@
 // lib/core/logging/app_logger.dart
 //
-// Structured logger for WappTidy.
+// Structured logger for WazApp.
 // Rules:
 //   - NEVER use print() anywhere in the codebase. Use AppLogger exclusively.
 //   - Log levels: finest/finer/fine/config/info/warning/severe/shout

@@ -1,199 +1,104 @@
 // lib/core/di/providers.dart
 //
-// Root Riverpod providers for all core services and the database.
-//
-// Architecture rule (DEV_PROMPT §3): dependencies point inward only.
-//   presentation → domain → data → core/services
-//
-// All providers here expose interfaces, not concrete types, so that
-// tests can override them with fakes via ProviderContainer overrides.
+// Root Riverpod providers. Interfaces are exposed (not concrete types) so tests
+// can override platform adapters with fakes via ProviderScope/ProviderContainer.
 
-import 'dart:io';
+import 'dart:io' show Platform;
 
+import 'package:flutter/material.dart' show ThemeMode;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
-import '../../features/clean/data/media_action_coordinator.dart';
+import '../../features/library/data/library_service.dart';
+import '../../features/library/data/library_storage.dart';
+import '../../features/library/data/media_probe.dart';
+import '../../features/status/data/status_access_service.dart';
 import '../database/app_database.dart';
-import '../services/ads/ad_manager.dart';
-import '../services/ads/ads_service.dart';
-import '../services/ads/fake_ads_service.dart';
-import '../services/analytics/analytics_service.dart';
-import '../services/analytics/fake_analytics_service.dart';
-import '../services/background_task/background_task_service.dart';
-import '../services/background_task/fake_background_task_service.dart';
-import '../services/media_access/media_access_service.dart';
-import '../services/media_access/fake_media_access_service.dart';
-import '../services/media_access/real_media_access_service.dart';
-import '../services/purchases/app_purchase_service.dart';
-import '../services/purchases/purchase_service.dart';
-import '../services/remote_config/remote_config_service.dart';
-import '../services/remote_config/fake_remote_config_service.dart';
-import '../services/notifications/notification_service.dart';
-import '../services/notifications/fake_notification_service.dart';
-import '../services/audio/audio_playback_service.dart';
-import '../services/audio/fake_audio_playback_service.dart';
-import '../services/backup/cloud_backup_service.dart';
-import '../services/backup/fake_cloud_backup_service.dart';
 import '../services/onboarding/onboarding_service.dart';
 import '../services/onboarding/real_onboarding_service.dart';
-import '../services/installed_apps/installed_apps_service.dart';
-import '../services/media_access/media_item.dart';
 
 // ---------------------------------------------------------------------------
-// Database
+// Storage
 // ---------------------------------------------------------------------------
 
-/// The single shared AppDatabase instance.
 final appDatabaseProvider = Provider<AppDatabase>((ref) {
   final db = AppDatabase();
   ref.onDispose(db.close);
   return db;
 });
 
+/// Opened once in `main()` and injected through a ProviderScope override.
+final libraryStorageProvider = Provider<LibraryStorage>(
+  (ref) => throw UnimplementedError('libraryStorageProvider must be overridden in main()'),
+);
+
 // ---------------------------------------------------------------------------
-// Services
+// Platform adapters
 // ---------------------------------------------------------------------------
-//
-// Phase 0: all service providers return their Fake implementations.
-// Phase 3+: real implementations are swapped in here (not in callers).
-// Tests override any of these via ProviderContainer(overrides: [...]).
 
-final analyticsServiceProvider = Provider<AnalyticsService>(
-  (ref) => FakeAnalyticsService(),
+final _androidBridgeProvider = Provider<ChannelStatusAccessService?>(
+  (ref) => Platform.isAndroid ? ChannelStatusAccessService() : null,
 );
 
-final remoteConfigServiceProvider = Provider<RemoteConfigService>(
-  (ref) => FakeRemoteConfigService(),
+final statusAccessServiceProvider = Provider<StatusAccessService>(
+  (ref) => ref.watch(_androidBridgeProvider) ?? const UnsupportedStatusAccessService(),
 );
 
-final purchaseServiceProvider = Provider<PurchaseService>((ref) {
-  final svc = AppPurchaseService();
-  ref.onDispose(svc.dispose);
-  return svc;
-});
-
-final adsServiceProvider = Provider<AdsService>(
-  (ref) => FakeAdsService(),
+final mediaToolsProvider = Provider<MediaTools>(
+  (ref) => ref.watch(_androidBridgeProvider) ?? const UnsupportedMediaTools(),
 );
 
-final adManagerProvider = Provider<AdManager>((ref) {
-  final adsService = ref.watch(adsServiceProvider);
-  final remoteConfig = ref.watch(remoteConfigServiceProvider);
-  return AdManager(
-    service: adsService,
-    remoteConfigService: remoteConfig,
-    isPremiumCallback: () => ref.watch(isPremiumProvider),
-  );
-});
+final mediaProbeProvider = Provider<MediaProbe>((ref) => const FlutterMediaProbe());
 
-final mediaAccessServiceProvider = Provider<MediaAccessService>((ref) {
-  if (Platform.environment.containsKey('FLUTTER_TEST')) {
-    return FakeMediaAccessService();
-  }
-  return RealMediaAccessService();
-});
+// ---------------------------------------------------------------------------
+// Application services
+// ---------------------------------------------------------------------------
 
-final backgroundTaskServiceProvider = Provider<BackgroundTaskService>(
-  (ref) => FakeBackgroundTaskService(),
-);
-
-final onboardingServiceProvider = Provider<OnboardingService>(
-  (ref) => RealOnboardingService(),
-);
-
-final notificationServiceProvider = Provider<NotificationService>(
-  (ref) => FakeNotificationService(),
-);
-
-final audioPlaybackServiceProvider = Provider<AudioPlaybackService>(
-  (ref) => FakeAudioPlaybackService(),
-);
-
-final cloudBackupServiceProvider = Provider<CloudBackupService>(
-  (ref) => FakeCloudBackupService(),
-);
-
-final mediaActionCoordinatorProvider = Provider<MediaActionCoordinator>((ref) {
-  return MediaActionCoordinator(
-    mediaAccessService: ref.watch(mediaAccessServiceProvider),
+final libraryServiceProvider = Provider<LibraryService>((ref) {
+  return LibraryService(
     db: ref.watch(appDatabaseProvider),
+    storage: ref.watch(libraryStorageProvider),
+    status: ref.watch(statusAccessServiceProvider),
+    tools: ref.watch(mediaToolsProvider),
+    probe: ref.watch(mediaProbeProvider),
   );
 });
 
-// ---------------------------------------------------------------------------
-// Derived state
-// ---------------------------------------------------------------------------
-
-/// Current premium entitlement, derived from the purchase service stream.
-final premiumEntitlementProvider = StreamProvider<PremiumEntitlement>((ref) {
-  final svc = ref.watch(purchaseServiceProvider);
-  return svc.entitlementStream;
-});
-
-/// Convenience bool: is the user currently Premium?
-final isPremiumProvider = Provider<bool>((ref) {
-  final purchaseService = ref.watch(purchaseServiceProvider);
-  final entitlement = ref.watch(premiumEntitlementProvider);
-  if (entitlement.hasValue && entitlement.value != null) {
-    return entitlement.value == PremiumEntitlement.premium;
-  }
-  return purchaseService.currentEntitlement == PremiumEntitlement.premium;
-});
+final onboardingServiceProvider = Provider<OnboardingService>((ref) => RealOnboardingService());
 
 // ---------------------------------------------------------------------------
-// Installed Apps & Media Sources (WhatsApp vs WhatsApp Business)
+// Theme
 // ---------------------------------------------------------------------------
 
-final installedAppsServiceProvider = Provider<InstalledAppsService>((ref) {
-  return PlatformInstalledAppsService();
-});
+const _kThemeKey = 'theme_mode_v1';
 
-final installedSourcesProvider = FutureProvider<InstalledSources>((ref) async {
-  final service = ref.watch(installedAppsServiceProvider);
-  return service.detectInstalledSources();
-});
-
-/// Available source filter choices for UI screens.
-enum MediaSourceFilter {
-  all('All', null),
-  whatsApp('WhatsApp', 'com.whatsapp'),
-  whatsAppBusiness('Business', 'com.whatsapp.w4b');
-
-  const MediaSourceFilter(this.label, this.packageName);
-  final String label;
-  final String? packageName;
-
-  bool matches(String? sourceApp) {
-    if (this == MediaSourceFilter.all) return true;
-    if (this == MediaSourceFilter.whatsApp) {
-      return sourceApp == 'com.whatsapp' || sourceApp == 'legacy';
-    }
-    if (this == MediaSourceFilter.whatsAppBusiness) {
-      return sourceApp == 'com.whatsapp.w4b';
-    }
-    return true;
-  }
-
-  bool matchesMediaSource(MediaSource source) {
-    if (this == MediaSourceFilter.all) return true;
-    if (this == MediaSourceFilter.whatsApp) return source.isWhatsApp;
-    if (this == MediaSourceFilter.whatsAppBusiness) return source.isBusiness;
-    return true;
-  }
-}
-
-class ActiveSourceFilterNotifier extends Notifier<MediaSourceFilter> {
+class ThemeModeNotifier extends Notifier<ThemeMode> {
   @override
-  MediaSourceFilter build() => MediaSourceFilter.all;
+  ThemeMode build() {
+    _load();
+    return ThemeMode.system;
+  }
 
-  void setFilter(MediaSourceFilter filter) {
-    state = filter;
+  Future<void> _load() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final raw = prefs.getString(_kThemeKey);
+      final mode = ThemeMode.values.where((m) => m.name == raw);
+      if (mode.isNotEmpty) state = mode.first;
+    } catch (_) {
+      // Preferences unavailable: keep following the system theme.
+    }
+  }
+
+  Future<void> set(ThemeMode mode) async {
+    state = mode;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_kThemeKey, mode.name);
+    } catch (_) {
+      // Non-fatal: the choice still applies for this session.
+    }
   }
 }
 
-/// Global active source filter. Defaults to All.
-final activeSourceFilterProvider =
-    NotifierProvider<ActiveSourceFilterNotifier, MediaSourceFilter>(
-  ActiveSourceFilterNotifier.new,
-);
-
+final themeModeProvider = NotifierProvider<ThemeModeNotifier, ThemeMode>(ThemeModeNotifier.new);

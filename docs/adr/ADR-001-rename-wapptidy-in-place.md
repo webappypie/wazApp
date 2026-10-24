@@ -1,0 +1,9 @@
+# ADR-001 — Convert the WappTidy repository into WazApp in place
+
+- **Status:** accepted (owner decision, 2026-10-24)
+- **Context:** The repository was *WappTidy*, a media cleaner (`com.wapptidy.wapptidy`, 17 finished cleaner phases). The WazApp specification describes a status saver/editor with different identifiers (`com.webappypie.wazapp`, Firebase project `wazapp-512609`).
+- **Decision:** Keep the sound infrastructure (Flutter, Riverpod, go_router, Drift, design-token system, state widgets, error/logging) and rename the product. Remove cleaner-only features and fake services instead of adapting them. Pre-existing uncommitted work was first committed on `checkpoint/wapptidy-pre-wazapp` (`3c18c57`); conversion happens on `feature/wazapp`.
+- **Removed:** similar/blurry photo detection, swipe clean, duplicate/large-video/old-media/screenshot/document/voice-note cleaners, Bin, storage analytics, scheduled scans + notifications, audio preview, MediaStore indexer, Google Drive backup (fake, and a PRD non-goal), fake purchase/ads/remote-config/analytics services, `firebase_core`/`firebase_remote_config`/`permission_handler` dependencies. Legacy docs were moved to `docs/legacy-wapptidy/`.
+- **Changed:** Android `applicationId`/`namespace` → `com.webappypie.wazapp`, Kotlin package, channel names (`com.webappypie.wazapp/*`), app label, Dart package name `wazapp`, brand palette (deep teal `#075E54`, green `#128C7E`, accent `#25D366`), Drift schema (single `saved_media` table, schema v1; no migration from WappTidy needed because the application id changed so no installs share data).
+- **Alternatives:** fresh `flutter create` project (rejected: discards working tooling, tests and CI knowledge); adapting cleaner screens to saver screens (rejected: different data model and misleading dead code).
+- **Evidence:** `flutter analyze` clean; unit/widget tests under `test/`.

@@ -1,9 +1,36 @@
 # Implementation Log
 
 ## 2026-10-24 — Phase 0: audit only
-- Read: README, AI_AGENT_HANDOFF, all `docs/*.md` pack files, all `prompts/*.md`, full `WAPCentral_WazApp_Integration_Guide.md`.
+- Read README, AI_AGENT_HANDOFF, all `docs/*.md` pack files, all `prompts/*.md`, the full WAPCentral guide.
 - Located Firebase config (repo root): `google-services.json` (project `wazapp-512609`, package `com.webappypie.wazapp`), `GoogleService-Info.plist` (bundle `com.webappypie.wazapp.ios`). Values intentionally not copied into reports.
-- `docs/adr/` does not exist (referenced by the task); `WazApp_Complete_Project_Documentation/` is an empty nested folder.
-- Ran baseline analyzer, tests, debug build — see `BASELINE_AUDIT.md`.
-- No source files were modified. Only new files under `docs/audit/`.
-- Stopped before Phase 1 on one owner decision (D1: repo is WappTidy, not WazApp).
+- Ran baseline analyzer/tests/debug build on the pre-existing WappTidy code (see `BASELINE_AUDIT.md`). Finding: the repo is a media cleaner, not WazApp. Owner decided: rename in place (ADR-001).
+
+## 2026-10-24 — Phase 1: conversion + P0 core saver and library (Android implemented; iOS scaffolded)
+
+### Git
+- `checkpoint/wapptidy-pre-wazapp` (`3c18c57`): all pre-existing uncommitted WappTidy work + the documentation pack. The WAPCentral guide was **not** committed (contains the unmasked `X-App-Key`) and is now git-ignored.
+- `feature/wazapp`: all changes below.
+
+### Removed (cleaner-only / fake)
+Whole feature modules `analytics`, `backup` (fake Google Drive), `bin`, `clean`, `dev`, `home`, `indexing`, `organize`, `search`, `settings` (old); services `ads`, `analytics`, `audio`, `background_task`, `backup`, `installed_apps`, `media_access`, `notifications`, `purchases` (fake Premium grant), `remote_config`; native Kotlin: BackgroundScanWorker, BlurDetectorEngine, DuplicateDetector, MediaActionHandler, MediaIndexer, NotificationHelper, PerceptualHashEngine, VideoCompressorEngine; the 28 old test files; unused deps (`firebase_core`, `firebase_remote_config`, `permission_handler`, `riverpod_annotation`, `riverpod_generator`, WorkManager). Legacy docs moved to `docs/legacy-wapptidy/`. Audit findings A-01, A-03, A-04 (fakes), A-05 (unused Firebase deps), A-12 (permissions: only `WRITE_EXTERNAL_STORAGE` maxSdk 28 remains), A-13/A-14 (swallowed errors, fake-asserting tests) resolved by removal.
+
+### Identity / config
+- Android `applicationId`/`namespace` `com.webappypie.wazapp`, Kotlin package `com.webappypie.wazapp`, channel `com.webappypie.wazapp/status_access`, label `WazApp`, Dart package `wazapp`; iOS scaffold created (`flutter create --platforms=ios`), bundle id `com.webappypie.wazapp.ios`.
+- `google-services.json` → `android/app/`, `GoogleService-Info.plist` → `ios/Runner/` per guide §3. **Not wired into any build yet** (Firebase/FCM is Phase 5; the google-services Gradle plugin is intentionally not applied until `firebase_messaging` is added).
+- Release signing no longer falls back silently to the debug key (A-06): requires `android/key.properties` or explicit `-PallowDebugSigning=true`.
+- Brand tokens: deep teal `#075E54`, green `#128C7E`, accent `#25D366`; original mark (gradient tile + download arrow), no third-party assets.
+
+### New code
+- Native: `StatusAccessHandler.kt` (SAF folder grant + persisted permission, WhatsApp/Business separate validation, listing, thumbnails, verified copy with `.part` + size check + decode, gallery export via MediaStore on API 29+). ADR-002.
+- Dart: `features/status` (access service, providers, Home, status preview), `features/library` (Drift `saved_media`, `LibraryService`, storage layout, probe, Saved grid with filters/search/multi-select, full-screen viewer with video controls, import from Photos/Files, share, gallery export, confirmed delete), `features/settings`, `features/onboarding` (no permission prompts; honest copy), 3-tab router. ADR-003.
+- Riverpod 3 silent provider retry disabled (`ProviderScope(retry: …)`), so failures surface immediately.
+
+### Bugs found by the new tests and fixed
+1. Quick-save/selection overlays were unreachable: tile `InkWell` sat above the action button (hit-test) → restructured `MediaTile`.
+2. `LibraryService.delete` could remove the thumbnail/file and keep the row (or the reverse) → media file is now the source of truth; thumbnails best-effort; `reconcile()` sweeps orphan thumbnails.
+3. `formatBytes` showed "2 KB" for 1.5 KB.
+
+### Not done in Phase 1 (honest list)
+- iOS: scaffold only. Import code is the same Dart path (image_picker/file_picker), **unverified on iOS** (no Xcode); iOS video thumbnails are not generated (placeholder icon); no iOS gallery export (Share is the path).
+- Android on-device validation of the SAF bridge: **blocked** — USB install was refused by the phone (`INSTALL_FAILED_USER_RESTRICTED`, "Install via USB" must be enabled by the owner). See `KNOWN_LIMITATIONS.md`.
+- Photo/video editor, status maker, Private Folder, Storage Manager, WAPCentral, ads, billing: Phases 2–5 (not started; no UI entry points exist for them yet, so no placeholder controls ship).

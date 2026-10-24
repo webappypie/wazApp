@@ -8,7 +8,7 @@ plugins {
 }
 
 android {
-    namespace = "com.wapptidy.wapptidy"
+    namespace = "com.webappypie.wazapp"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
@@ -18,16 +18,9 @@ android {
     }
 
     defaultConfig {
-        // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
-        applicationId = "com.wapptidy.wapptidy"
-        // You can update the following values to match your application needs.
-        // For more information, see: https://flutter.dev/to/review-gradle-config.
-        minSdk = 26        // PRD §5.1: Android 8.0 minimum
-        targetSdk = 36     // PRD §5.1: current Play requirement
-        // Uses the version code from pubspec.yaml. When using split APKs, 1000 * ABI_VERSION
-        // is added automatically by Flutter. (https://developer.android.com/studio/build/configure-apk-splits#configure-APK-versions)
-        // You can force using the value of versionCode by specifying the `-P force-version-code-ignoring-abi=true`
-        // flag during build.
+        applicationId = "com.webappypie.wazapp"
+        minSdk = 26
+        targetSdk = 36
         versionCode = flutter.versionCode
         versionName = flutter.versionName
     }
@@ -51,10 +44,12 @@ android {
 
     buildTypes {
         release {
-            signingConfig = if (keystorePropertiesFile.exists()) {
-                signingConfigs.getByName("release")
-            } else {
-                signingConfigs.getByName("debug")
+            // Release builds are never silently debug-signed. Provide android/key.properties
+            // (see key.properties.example) or pass -PallowDebugSigning=true for local R8 checks only.
+            signingConfig = when {
+                keystorePropertiesFile.exists() -> signingConfigs.getByName("release")
+                project.hasProperty("allowDebugSigning") -> signingConfigs.getByName("debug")
+                else -> null
             }
             isMinifyEnabled = true
             isShrinkResources = true
@@ -76,7 +71,3 @@ flutter {
     source = "../.."
 }
 
-dependencies {
-    implementation("androidx.work:work-runtime-ktx:2.9.0")
-    implementation("androidx.core:core-ktx:1.12.0")
-}

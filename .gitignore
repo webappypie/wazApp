@@ -54,3 +54,8 @@ app.*.map.json
 
 # WAPCentral guide contains the unmasked X-App-Key - never commit
 WAPCentral_*Integration_Guide.md
+
+# Local build output
+/android/build/
+/android/.gradle/
+/android/.kotlin/

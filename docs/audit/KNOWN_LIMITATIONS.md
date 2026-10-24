@@ -20,5 +20,14 @@
 - iOS cannot read WhatsApp's status storage; only Photos/Files import.
 - Private Folder = app-private storage + optional device authentication. **Not encryption** unless later implemented and tested; data is lost on uninstall.
 
+## Phase 1 additions
+- E5. **Device install blocked:** `adb install` to the attached Xiaomi (`2201116SI`, Android 13) failed with `INSTALL_FAILED_USER_RESTRICTED`. Owner action: Settings > Additional settings > Developer options > enable **Install via USB** (and "USB debugging (Security settings)"), then re-run `flutter install`. Until then the native SAF bridge (`StatusAccessHandler.kt`) is compiled (debug build OK) but **not exercised on a device**.
+- E6. The attached phone has WhatsApp Business installed and its `.Statuses` folder currently holds no status files (only `.nomedia`); end-to-end saving needs the owner to view a status first. Plain WhatsApp is not installed on it (WhatsApp vs Business separation can only be unit-tested).
+- L1. Status access depends on the OS picker honouring the initial-folder hint and allowing `Android/media`; validated on no device yet.
+- L2. iOS: scaffold only, nothing built or run; Photos/Files import, share and thumbnail behaviour unverified; no gallery export on iOS (Share used).
+- L3. "Save to gallery" requires Android 10+ (MediaStore RELATIVE_PATH); on 8-9 the app says to use Share.
+- L4. Saved media is app-private and lost on uninstall (stated in Settings); it is not encrypted and is never described as encrypted.
+- L5. Widget tests on Windows cannot assert file unlink after image decode (open handles); the test asserts the DB/file consistency invariant on every OS and full deletion on POSIX only.
+
 ## Not yet verified (nothing has been verified on a device in this audit)
 All runtime behaviour; only static analysis and unit/widget tests were run on the host (see `BASELINE_AUDIT.md`).

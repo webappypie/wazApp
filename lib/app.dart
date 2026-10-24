@@ -1,26 +1,38 @@
 // lib/app.dart
 //
-// Root application widget — WappTidy.
-// Wraps the app in ProviderScope (Riverpod) and connects the go_router.
+// Root application widget - WazApp.
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import 'core/design/tokens.dart';
+import 'core/di/providers.dart';
 import 'core/router/app_router.dart';
-import 'features/settings/presentation/settings_controller.dart';
 
-class WappTidyApp extends ConsumerWidget {
-  const WappTidyApp({super.key});
+class WazApp extends ConsumerStatefulWidget {
+  const WazApp({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final themeMode = ref.watch(appThemeModeProvider);
+  ConsumerState<WazApp> createState() => _WazAppState();
+}
 
+class _WazAppState extends ConsumerState<WazApp> {
+  late final GoRouter _router = buildRouter();
+
+  @override
+  void dispose() {
+    _router.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final themeMode = ref.watch(themeModeProvider);
     return MaterialApp.router(
-      title: 'WappTidy',
+      title: 'WazApp',
       debugShowCheckedModeBanner: false,
-      routerConfig: appRouter,
+      routerConfig: _router,
       theme: AppTheme.light(),
       darkTheme: AppTheme.dark(),
       themeMode: themeMode,

@@ -1,8 +1,8 @@
 // lib/core/error/app_error.dart
 //
-// Typed error hierarchy for WappTidy.
-// All domain errors extend AppError. Raw exceptions must be caught at the
-// data/service boundary and converted before surfacing to the UI.
+// Typed error hierarchy for WazApp (docs/SYSTEM_ARCHITECTURE.md "Performance and errors").
+// Raw exceptions are caught at the data/service boundary and converted before
+// they reach the UI, so screens can show an actionable message.
 
 import 'package:equatable/equatable.dart';
 
@@ -10,6 +10,7 @@ import 'package:equatable/equatable.dart';
 sealed class AppError extends Equatable implements Exception {
   const AppError({required this.message, this.cause});
 
+  /// User-presentable explanation (never contains paths or file names).
   final String message;
   final Object? cause;
 
@@ -20,14 +21,41 @@ sealed class AppError extends Equatable implements Exception {
   String toString() => '$runtimeType: $message';
 }
 
-/// Media / storage access errors.
-final class MediaAccessError extends AppError {
-  const MediaAccessError({required super.message, super.cause});
+/// Why a status/media operation could not be performed.
+enum MediaFailure {
+  /// No folder grant yet, or the grant was revoked.
+  noAccess,
+
+  /// The chosen folder is not the expected status folder.
+  wrongFolder,
+
+  /// The source file vanished (WhatsApp expired the status, app cleared).
+  sourceUnavailable,
+
+  /// Not enough free space on the device.
+  lowStorage,
+
+  /// Source or output is unreadable/corrupt/unsupported.
+  corrupt,
+
+  /// Copy finished but verification (size/decode) failed.
+  verifyFailed,
+
+  /// Operation is not supported on this OS version/platform.
+  unsupported,
+
+  /// Anything else.
+  unknown,
 }
 
-/// Permission-related errors.
-final class PermissionError extends AppError {
-  const PermissionError({required super.message, super.cause});
+/// Media / storage access errors.
+final class MediaAccessError extends AppError {
+  const MediaAccessError(this.failure, {required super.message, super.cause});
+
+  final MediaFailure failure;
+
+  @override
+  List<Object?> get props => [failure, message, cause];
 }
 
 /// Database errors.
@@ -35,22 +63,12 @@ final class DatabaseError extends AppError {
   const DatabaseError({required super.message, super.cause});
 }
 
-/// File operation errors (move, copy, delete).
+/// File operation errors (copy, delete, export).
 final class FileOperationError extends AppError {
   const FileOperationError({required super.message, super.cause});
 }
 
-/// Remote config / Firebase errors — always non-fatal; caller must use local default.
-final class RemoteConfigError extends AppError {
-  const RemoteConfigError({required super.message, super.cause});
-}
-
-/// Purchase / billing errors.
-final class PurchaseError extends AppError {
-  const PurchaseError({required super.message, super.cause});
-}
-
-/// Analytics errors — always non-fatal.
-final class AnalyticsError extends AppError {
-  const AnalyticsError({required super.message, super.cause});
+/// The user cancelled a long-running operation.
+final class OperationCancelled extends AppError {
+  const OperationCancelled() : super(message: 'Cancelled');
 }
