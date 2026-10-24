@@ -2,6 +2,21 @@
 
 Only commands that were actually run are listed. Host: Windows 11, Flutter 3.47.1 / Dart 3.13.1, Android SDK 36.1.0. Branch `feature/wazapp`.
 
+## Phase 2 (end state, 2026-10-24)
+
+| Check | Command | Result |
+|---|---|---|
+| Static analysis | `flutter analyze` | **No issues found** |
+| Automated tests | `flutter test` | **145 passed, 0 failed** (was 51 after Phase 1). New: renderer pixel tests, crop math (incl. 32 locked-ratio drag cases), real-codec export tests, editor widget tests (7), status renderer (13: 26 templates pairwise distinct, no clipping for 300-char EN/HI text, Devanagari conjunct shaping and Latin-font fallback with the real bundled fonts), status maker UI/service (7: all 26 templates export 1080×1920 PNG) |
+| Android debug build (with fonts/assets, `image` dep) | `flutter build apk --debug` | **OK** (597 s) |
+| Install on physical device | `adb install -r app-debug.apk` | **FAILED again: `INSTALL_FAILED_USER_RESTRICTED`** (owner has not yet enabled "Install via USB") |
+| Visual check of editor / status maker on a device or emulator | – | **not done** — no screenshots exist; Devanagari output has been checked only by metric/ink tests, not by eye |
+| Performance (export time of 12 MP photo, preview FPS, memory) | – | **not measured** |
+
+### What the Phase 2 tests prove / do not prove
+Proven (real `dart:ui` rendering and codecs in `flutter test`): geometry (rotate/flip/crop order), colour maths clamping, every filter changes pixels and filters differ from each other, overlays paint and move, export is a decodable JPEG with exact dimensions, original bytes unchanged, cancellation/corrupt/missing inputs leave no rows or files, status images have the right size and keep ink inside the safe area, Hindi conjuncts shape and Latin-only fonts fall back to Devanagari glyphs.
+Not proven: touch ergonomics (drag/pinch on a real screen), GPU vs test-engine rendering differences, emoji glyph rendering on a device, time/memory on low-end phones, TalkBack behaviour, iOS.
+
 ## Phase 1 (end state, 2026-10-24)
 
 | Check | Command | Result |

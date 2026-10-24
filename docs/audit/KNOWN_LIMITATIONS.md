@@ -29,5 +29,13 @@
 - L4. Saved media is app-private and lost on uninstall (stated in Settings); it is not encrypted and is never described as encrypted.
 - L5. Widget tests on Windows cannot assert file unlink after image decode (open handles); the test asserts the DB/file consistency invariant on every OS and full deletion on POSIX only.
 
+## Phase 2 additions
+- L6. Editor/status maker are verified with automated tests only; no screenshot or touch test on a device/emulator exists yet (E5 still blocks install; a second install attempt after Phase 2 failed identically).
+- L7. Overlays (text/stickers) stay fixed in the frame when the photo is rotated or flipped, and rotate/flip reset the crop. Cropping keeps overlays at the same spot on the photo.
+- L8. Export is bounded to 4096 px on the long side and always JPEG q92 without EXIF; there is no quality/format choice.
+- L9. JPEG encoding is pure Dart in a background isolate: cancellation takes effect between stages, not inside the encode; slow on low-end devices (not measured).
+- L10. Status maker exports 9:16 only; maximum 300 characters; emoji depend on the platform emoji font.
+- L11. No sharpness control (not implementable honestly without native/shader code); video editing, Private Folder, Storage Manager are still missing (Phases 3-4).
+
 ## Not yet verified (nothing has been verified on a device in this audit)
 All runtime behaviour; only static analysis and unit/widget tests were run on the host (see `BASELINE_AUDIT.md`).

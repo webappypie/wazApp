@@ -34,3 +34,25 @@ Whole feature modules `analytics`, `backup` (fake Google Drive), `bin`, `clean`,
 - iOS: scaffold only. Import code is the same Dart path (image_picker/file_picker), **unverified on iOS** (no Xcode); iOS video thumbnails are not generated (placeholder icon); no iOS gallery export (Share is the path).
 - Android on-device validation of the SAF bridge: **blocked** — USB install was refused by the phone (`INSTALL_FAILED_USER_RESTRICTED`, "Install via USB" must be enabled by the owner). See `KNOWN_LIMITATIONS.md`.
 - Photo/video editor, status maker, Private Folder, Storage Manager, WAPCentral, ads, billing: Phases 2–5 (not started; no UI entry points exist for them yet, so no placeholder controls ship).
+
+## 2026-10-24 — Phase 2: photo editor + Hindi/English status maker
+
+### Delivered (host-verified; not yet seen on a device)
+- `features/editor`: immutable `EditState` + `EditHistory` (undo/redo/reset), one renderer for preview and export (`paintEdit`), pure `crop_math`, `PhotoExportService` (bounded decode → render → JPEG in isolate → verify → library), editor UI (Adjust, Crop/rotate/flip with aspect presets and draggable frame, Filters with live thumbnails, Text, Stickers), discard guard, staged progress + cancel, error dialog with retry. Entry points: **Create** tab and viewer ▸ *Edit photo*. ADR-004.
+- `features/status_maker`: 26 procedural templates, EN/HI samples, text auto-fit (max 300 chars), 1080×1920 PNG export, Save / Save & share.
+- `LibraryService.addCreatedFile` (verified insert of app-generated output with exact-size check and rollback).
+- Bundled fonts (Hind, Tiro Devanagari Hindi, Kalam, Rozha One, Poppins, Pacifico; OFL; licences registered in the app's licence page).
+- New dependency: `image` (JPEG encoder). Navigation now Home / Saved / Create / Settings.
+
+### Bugs found by the new tests and fixed
+1. Free crop drag threw `ArgumentError` (inverted clamp range) when a handle was dragged past the opposite edge.
+2. Sweep-gradient templates (Neon, Aurora, Eid Night via `sweep`) crashed: `Gradient.sweep` needs explicit stops for >2 colours.
+3. Text-entry dialog disposed its controller while the closing animation still used it (framework assertion) → dialog now owns its controller.
+4. Sticker text had no explicit colour (invisible in the test engine / on glyph fallback) → explicit colour.
+5. Over-long status text could not fit → input capped at 300 chars and layout guaranteed to fit that.
+
+### Not offered on purpose
+Sharpness control (cannot be done honestly with Canvas only), free-angle straighten, JPEG quality picker.
+
+### Known gaps
+No on-device run (install blocked, see KNOWN_LIMITATIONS E5); status maker has no 1:1 export size (9:16 only); overlays do not rotate with the photo when the photo is rotated (they stay in the frame); crop frame resets when rotating/flipping.

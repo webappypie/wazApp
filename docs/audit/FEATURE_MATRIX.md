@@ -3,7 +3,7 @@
 Statuses: working / partial / stubbed-fake / broken / missing / blocked-by-environment / not-applicable.
 "Working" here means exercised by automated tests on the host; **nothing is device-verified yet** (see KNOWN_LIMITATIONS E5). The Phase 0 matrix (baseline, WappTidy) is preserved in git history at `3c18c57`.
 
-_Last updated: end of Phase 1 (2026-10-24, branch `feature/wazapp`)._
+_Last updated: end of Phase 2 (2026-10-24, branch `feature/wazapp`)._
 
 | Feature | Pri | Status | Evidence / files | Verification | Blocker / next |
 |---|---|---|---|---|---|
@@ -17,8 +17,8 @@ _Last updated: end of Phase 1 (2026-10-24, branch `feature/wazapp`)._
 | Local library: grid, filters (All/Photos/Videos/Favourites/Recent), search, favourites, multi-select, bulk favourite/share/export/delete with count confirmation | P0 | working (host) | `saved_screen.dart`, `library_models.dart` | `saved_screen_test.dart`, filter tests | device check |
 | Viewer (pinch-zoom photos, video controls only for video, favourite/share/export/delete/details, missing-file recovery) | P0 | partial | `viewer_screen.dart`, `status_preview_screen.dart` | `viewer_screen_test.dart` (photo viewer, favourite, details, missing file); video playback unexercised | video playback + device check |
 | Metadata integrity (missing files, interrupted writes) | P0 | working (host) | `reconcile()`, `.part` cleanup at startup, delete ordering | `library_service_test.dart` | call `reconcile()` periodically (not yet scheduled) |
-| Photo editor / export | P1 | missing | no code, no UI entry | – | Phase 2 |
-| Hindi/English status maker | P1 | missing | – | – | Phase 2 |
+| Photo editor: crop (free/original/1:1/4:5/9:16/16:9), rotate, flip, brightness, contrast, saturation, 8 filters, text (6 fonts, size, colour, align, bold, outline, shadow), 32 emoji stickers, move/pinch/rotate overlays, undo/redo/reset, discard guard | P1 | working (host) | `features/editor/**` (shared preview/export renderer, `crop_math`, `photo_export_service`), entry: Create tab and viewer ▸ Edit photo. Sharpness intentionally NOT offered (ADR-004) | `photo_renderer_test` (pixel-level), `crop_math_test`, `photo_export_test` (real JPEG decode, original untouched, cancel/corrupt/rollback), `photo_editor_screen_test` (7) | on-device visual/touch check; large-photo timing; EXIF-orientation sample files |
+| Hindi/English status maker: 26 distinct templates, English/Hindi samples, font/size/colour/align/bold/shadow, auto-fit, 1080×1920 PNG, save + share | P1 | working (host) | `features/status_maker/**`; Devanagari shaping + fallback tests with the real bundled fonts | `status_renderer_test` (13), `status_maker_screen_test` (7: every template exports) | on-device check of Devanagari rendering on real GPU/fonts and of the share sheet → WhatsApp |
 | Video editor / export | P1 | missing | – | – | Phase 3 |
 | Private Folder | P1 | missing (schema column `isPrivate` reserved, excluded from library queries) | `saved_media_table.dart`, test "excludes private items" | – | Phase 4 |
 | Storage Manager | P1 | partial | Settings shows WazApp library count/size (`usedBytes`) | manual calc only | duplicates/large files/bulk delete → Phase 4 |
