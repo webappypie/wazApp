@@ -7,7 +7,7 @@ Only commands that were actually run are listed. Host: Windows 11, Flutter 3.47.
 | Check | Command | Result |
 |---|---|---|
 | Static analysis | `flutter analyze` | **No issues found** |
-| Automated tests (host) | `flutter test` | **176 passed, 0 failed** (+31 for video: edit-state/plan/validation 17, export service with fake encoder 7, editor screen with fake player 8 - counted in the 176 total) |
+| Automated tests (host) | `flutter test` | **176 passed, 0 failed** (+31 for video: edit-state/plan/validation 16, export service with fake encoder 7, editor screen with fake player 8 - counted in the 176 total) |
 | Kotlin / Media3 compile | Gradle `compileDebugKotlin` | OK (media3-transformer/effect/common 1.9.2) |
 | Android debug build | `flutter test integration_test/...` builds `assembleDebug` | OK |
 | **Real encoder on an emulator** | `flutter test integration_test/video_export_test.dart -d emulator-5554` (AVD `wazapp_test`, Android 16 / API 36, x86_64 Google APIs image, software GPU; two host-generated 1280×720 15 fps H.264+AAC clips, 8 s and 40 s, copied into the app's private directory) | **10/10 passed** |
