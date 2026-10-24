@@ -36,7 +36,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     _Page(Icons.download_rounded, 'Save',
         'Keep the statuses you have viewed. You choose the folder once; WazApp only reads it and never uploads anything.'),
     _Page(Icons.auto_awesome_outlined, 'Style',
-        'Build your own library of photos and videos. Editing and text statuses are coming in upcoming releases.'),
+        'Edit photos and make text statuses in English or हिन्दी. Your originals are never changed.'),
     _Page(Icons.ios_share_rounded, 'Share',
         'Share any saved item from the share sheet, or save a copy to your gallery. You are always in control.'),
   ];

@@ -48,13 +48,13 @@ void main() {
     await h.dispose(tester);
   });
 
-  testWidgets('returning user goes straight to the home shell with three real tabs', (tester) async {
+  testWidgets('returning user goes straight to the home shell with four real tabs', (tester) async {
     final h = await Harness.create(tester, onboarded: true);
     await tester.pumpWidget(app(h));
     await h.settle(tester);
 
     expect(find.text('Get started'), findsNothing);
-    for (final label in ['Home', 'Saved', 'Settings']) {
+    for (final label in ['Home', 'Saved', 'Create', 'Settings']) {
       expect(find.descendant(of: find.byType(NavigationBar), matching: find.text(label)), findsOneWidget);
     }
     await tester.tap(find.descendant(of: find.byType(NavigationBar), matching: find.text('Saved')));

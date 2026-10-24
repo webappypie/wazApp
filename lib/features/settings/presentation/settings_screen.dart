@@ -75,6 +75,12 @@ class SettingsScreen extends ConsumerWidget {
                 'Files are only read from folders you choose or pick yourself.'),
           ),
           const _Header('About'),
+          ListTile(
+            leading: const Icon(Icons.description_outlined),
+            title: const Text('Open-source licences'),
+            subtitle: const Text('Includes the fonts used by the editor and status maker.'),
+            onTap: () => showLicensePage(context: context, applicationName: 'WazApp'),
+          ),
           const ListTile(
             leading: Icon(Icons.info_outline),
             title: Text('WazApp · Save. Style. Share.'),

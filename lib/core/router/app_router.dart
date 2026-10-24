@@ -7,6 +7,8 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../features/create/presentation/create_screen.dart';
+import '../../features/editor/presentation/photo_editor_screen.dart';
 import '../../features/library/presentation/saved_screen.dart';
 import '../../features/library/presentation/viewer_screen.dart';
 import '../../features/onboarding/presentation/onboarding_screen.dart';
@@ -15,6 +17,7 @@ import '../../features/settings/presentation/settings_screen.dart';
 import '../../features/status/domain/status_models.dart';
 import '../../features/status/presentation/home_screen.dart';
 import '../../features/status/presentation/status_preview_screen.dart';
+import '../../features/status_maker/presentation/status_maker_screen.dart';
 
 class AppRoutes {
   AppRoutes._();
@@ -26,6 +29,9 @@ class AppRoutes {
   static const settings = '/settings';
   static const viewer = '/viewer';
   static const statusPreview = '/status-preview';
+  static const photoEditor = '/photo-editor';
+  static const statusMaker = '/status-maker';
+  static const create = '/create';
 }
 
 GoRouter buildRouter() => GoRouter(
@@ -49,6 +55,15 @@ GoRouter buildRouter() => GoRouter(
             return StatusPreviewScreen(item: item);
           },
         ),
+        GoRoute(
+          path: AppRoutes.photoEditor,
+          builder: (_, state) {
+            final id = state.extra;
+            if (id is! String) return const _BadRoute();
+            return PhotoEditorScreen(mediaId: id);
+          },
+        ),
+        GoRoute(path: AppRoutes.statusMaker, builder: (_, _) => const StatusMakerScreen()),
         StatefulShellRoute.indexedStack(
           builder: (context, state, shell) => _AppShell(shell: shell),
           branches: [
@@ -57,6 +72,9 @@ GoRouter buildRouter() => GoRouter(
             ]),
             StatefulShellBranch(routes: [
               GoRoute(path: AppRoutes.saved, builder: (_, _) => const SavedScreen()),
+            ]),
+            StatefulShellBranch(routes: [
+              GoRoute(path: AppRoutes.create, builder: (_, _) => const CreateScreen()),
             ]),
             StatefulShellBranch(routes: [
               GoRoute(path: AppRoutes.settings, builder: (_, _) => const SettingsScreen()),
@@ -103,6 +121,11 @@ class _AppShell extends StatelessWidget {
             icon: Icon(Icons.photo_library_outlined),
             selectedIcon: Icon(Icons.photo_library),
             label: 'Saved',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.auto_awesome_outlined),
+            selectedIcon: Icon(Icons.auto_awesome),
+            label: 'Create',
           ),
           NavigationDestination(
             icon: Icon(Icons.settings_outlined),

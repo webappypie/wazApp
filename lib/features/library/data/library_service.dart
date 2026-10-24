@@ -251,6 +251,78 @@ class LibraryService {
   }
 
   // ---------------------------------------------------------------------------
+  // Files produced by WazApp itself (edited photos, text statuses)
+  // ---------------------------------------------------------------------------
+
+  /// Moves a finished output at [tempPath] into the library after verifying it.
+  ///
+  /// The file is decoded; if [expectedWidth]/[expectedHeight] are given they must
+  /// match exactly. On any failure nothing is added and the library copy is removed
+  /// (the caller keeps ownership of [tempPath] and must delete it).
+  Future<SavedMedia> addCreatedFile(
+    String tempPath, {
+    required String fileName,
+    required String mimeType,
+    required MediaKind kind,
+    required SourceType sourceType,
+    int? expectedWidth,
+    int? expectedHeight,
+  }) async {
+    assert(sourceType == SourceType.created || sourceType == SourceType.edited);
+    await _storage.ensureCreated();
+    final id = _storage.newId();
+    final ext = p.extension(tempPath).replaceFirst('.', '').toLowerCase();
+    final dest = _storage.mediaPath(id, ext.isEmpty ? (kind == MediaKind.video ? 'mp4' : 'jpg') : ext);
+    final part = File('$dest.part');
+    String? thumb;
+    try {
+      await File(tempPath).copy(part.path);
+      if (await part.length() != await File(tempPath).length()) {
+        throw const MediaAccessError(MediaFailure.verifyFailed,
+            message: 'The saved file could not be verified.');
+      }
+      await part.rename(dest);
+      final info = await _probe.probe(dest, kind);
+      if ((expectedWidth != null && info.width != expectedWidth) ||
+          (expectedHeight != null && info.height != expectedHeight)) {
+        throw const MediaAccessError(MediaFailure.verifyFailed,
+            message: 'The exported file did not match the expected size.');
+      }
+      thumb = await _makeThumbnail(id, dest, kind);
+      await _db.insertMedia(SavedMediaTableCompanion.insert(
+        id: id,
+        path: dest,
+        kind: kind.name,
+        mimeType: mimeType,
+        fileName: fileName,
+        sizeBytes: info.sizeBytes,
+        savedAt: _clock(),
+        sourceType: sourceType.name,
+        width: Value(info.width),
+        height: Value(info.height),
+        durationMs: Value(info.durationMs),
+        isEdited: Value(sourceType == SourceType.edited),
+        thumbnailPath: Value(thumb),
+      ));
+    } on FileSystemException catch (e) {
+      await _discard(dest, thumb);
+      await _deleteQuietly(part);
+      final low = (e.osError?.errorCode == 28) || e.message.contains('No space');
+      throw MediaAccessError(
+        low ? MediaFailure.lowStorage : MediaFailure.unknown,
+        message: low ? 'Not enough free storage on this device.' : 'Could not save the result.',
+        cause: e,
+      );
+    } catch (e) {
+      await _discard(dest, thumb);
+      await _deleteQuietly(part);
+      if (e is AppError) rethrow;
+      throw DatabaseError(message: 'Could not save the result.', cause: e);
+    }
+    return (await _db.findById(id))!;
+  }
+
+  // ---------------------------------------------------------------------------
   // Mutations
   // ---------------------------------------------------------------------------
 

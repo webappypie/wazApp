@@ -9,11 +9,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
 import 'package:wazapp/core/database/app_database.dart';
 import 'package:wazapp/core/design/tokens.dart';
 import 'package:wazapp/core/di/providers.dart';
 import 'package:wazapp/core/services/onboarding/onboarding_service.dart';
 import 'package:wazapp/features/library/data/library_storage.dart';
+import 'package:wazapp/features/library/data/media_probe.dart';
 
 import 'fakes.dart';
 
@@ -35,7 +37,10 @@ final bool _driftQuiet = () {
 }();
 
 class Harness {
-  Harness._(this.tmp, this.sourceDir, this.db, this.storage, this.access, this.onboarding);
+  Harness._(this.tmp, this.sourceDir, this.db, this.storage, this.access, this.onboarding, this.realProbe);
+
+  /// Use the real image/video decoder instead of the fake probe (for export tests).
+  final bool realProbe;
 
   final Directory tmp;
   final Directory sourceDir;
@@ -48,6 +53,7 @@ class Harness {
     WidgetTester tester, {
     FakeStatusAccess? access,
     bool onboarded = true,
+    bool realProbe = false,
   }) async {
     // Real file I/O must run outside the fake-async zone of testWidgets.
     final h = await tester.runAsync(() async {
@@ -66,6 +72,7 @@ class Harness {
       storage,
       access ?? FakeStatusAccess(),
       FakeOnboarding(completed: onboarded),
+      realProbe,
     );
   }
 
@@ -74,7 +81,7 @@ class Harness {
         libraryStorageProvider.overrideWithValue(storage),
         statusAccessServiceProvider.overrideWithValue(access),
         mediaToolsProvider.overrideWithValue(access),
-        mediaProbeProvider.overrideWithValue(FakeProbe()),
+        mediaProbeProvider.overrideWithValue(realProbe ? const FlutterMediaProbe() : FakeProbe()),
         onboardingServiceProvider.overrideWithValue(onboarding),
       ];
 
@@ -82,6 +89,19 @@ class Harness {
         retry: (_, _) => null,
         overrides: overrides,
         child: MaterialApp(theme: AppTheme.light(), home: child),
+      );
+
+  /// App-like host with a router so `context.pop()/go()` work. [initial] is the first location.
+  Widget wrapRouter(List<RouteBase> routes, {String initial = '/'}) => ProviderScope(
+        retry: (_, _) => null,
+        overrides: [
+          ...overrides,
+          exportTempDirProvider.overrideWithValue(Directory('${tmp.path}/export_tmp')),
+        ],
+        child: MaterialApp.router(
+          theme: AppTheme.light(),
+          routerConfig: GoRouter(initialLocation: initial, routes: routes),
+        ),
       );
 
   /// Pumps several frames so chained providers resolve. (pumpAndSettle would never

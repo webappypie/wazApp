@@ -14,6 +14,7 @@ import '../../../core/database/app_database.dart';
 import '../../../core/design/tokens.dart';
 import '../../../core/di/providers.dart';
 import '../../../core/format.dart';
+import '../../../core/router/app_router.dart';
 import '../domain/library_models.dart';
 import 'library_actions.dart';
 import 'library_providers.dart';
@@ -79,6 +80,8 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen> {
               switch (v) {
                 case 'gallery':
                   await exportFlow(context, ref, [current]);
+                case 'edit':
+                  context.push(AppRoutes.photoEditor, extra: current.id);
                 case 'info':
                   _showInfo(current);
                 case 'delete':
@@ -93,6 +96,7 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen> {
               }
             },
             itemBuilder: (_) => [
+              if (!current.isVideo) const PopupMenuItem(value: 'edit', child: Text('Edit photo')),
               if (canExport) const PopupMenuItem(value: 'gallery', child: Text('Save to gallery')),
               const PopupMenuItem(value: 'info', child: Text('Details')),
               const PopupMenuItem(value: 'delete', child: Text('Delete…')),

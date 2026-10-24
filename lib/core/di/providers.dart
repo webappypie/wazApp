@@ -3,12 +3,15 @@
 // Root Riverpod providers. Interfaces are exposed (not concrete types) so tests
 // can override platform adapters with fakes via ProviderScope/ProviderContainer.
 
-import 'dart:io' show Platform;
+import 'dart:io' show Directory, Platform;
 
 import 'package:flutter/material.dart' show ThemeMode;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'package:path/path.dart' as p;
+
+import '../../features/editor/data/photo_export_service.dart';
 import '../../features/library/data/library_service.dart';
 import '../../features/library/data/library_storage.dart';
 import '../../features/library/data/media_probe.dart';
@@ -63,6 +66,18 @@ final libraryServiceProvider = Provider<LibraryService>((ref) {
     probe: ref.watch(mediaProbeProvider),
   );
 });
+
+/// Scratch space for in-flight exports (the platform cache directory; the OS may clear it).
+final exportTempDirProvider = Provider<Directory>(
+  (ref) => Directory(p.join(Directory.systemTemp.path, 'wazapp_exports')),
+);
+
+final photoExportServiceProvider = Provider<PhotoExportService>(
+  (ref) => PhotoExportService(
+    library: ref.watch(libraryServiceProvider),
+    tempDir: ref.watch(exportTempDirProvider),
+  ),
+);
 
 final onboardingServiceProvider = Provider<OnboardingService>((ref) => RealOnboardingService());
 

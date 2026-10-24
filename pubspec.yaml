@@ -33,6 +33,7 @@ dependencies:
   share_plus: ^13.3.1
   image_picker: ^1.2.4
   file_picker: ^13.2.0
+  image: ^4.12.0
 
 dev_dependencies:
   flutter_test:
@@ -49,3 +50,33 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+
+  assets:
+    - assets/licenses/
+
+  # Bundled OFL fonts. Every family covers Devanagari (Hindi) and Latin, except Pacifico
+  # (Latin only; Hindi text falls back to Hind). See assets/fonts/README.md.
+  fonts:
+    - family: Hind
+      fonts:
+        - asset: assets/fonts/Hind-Regular.ttf
+        - asset: assets/fonts/Hind-Bold.ttf
+          weight: 700
+    - family: TiroDevanagariHindi
+      fonts:
+        - asset: assets/fonts/TiroDevanagariHindi-Regular.ttf
+    - family: Kalam
+      fonts:
+        - asset: assets/fonts/Kalam-Regular.ttf
+        - asset: assets/fonts/Kalam-Bold.ttf
+          weight: 700
+    - family: RozhaOne
+      fonts:
+        - asset: assets/fonts/RozhaOne-Regular.ttf
+    - family: Poppins
+      fonts:
+        - asset: assets/fonts/Poppins-SemiBold.ttf
+          weight: 600
+    - family: Pacifico
+      fonts:
+        - asset: assets/fonts/Pacifico-Regular.ttf
