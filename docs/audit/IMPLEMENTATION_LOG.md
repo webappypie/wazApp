@@ -46,7 +46,7 @@ Whole feature modules `analytics`, `backup` (fake Google Drive), `bin`, `clean`,
 
 ### Bugs found by the new tests and fixed
 1. Free crop drag threw `ArgumentError` (inverted clamp range) when a handle was dragged past the opposite edge.
-2. Sweep-gradient templates (Neon, Aurora, Eid Night via `sweep`) crashed: `Gradient.sweep` needs explicit stops for >2 colours.
+2. Sweep-gradient templates (Neon, Aurora) crashed: `Gradient.sweep` needs explicit stops for >2 colours.
 3. Text-entry dialog disposed its controller while the closing animation still used it (framework assertion) → dialog now owns its controller.
 4. Sticker text had no explicit colour (invisible in the test engine / on glyph fallback) → explicit colour.
 5. Over-long status text could not fit → input capped at 300 chars and layout guaranteed to fit that.
