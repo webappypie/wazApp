@@ -83,21 +83,51 @@ class DocumentsDataSource extends CategoryDataSource {
     return true;
   }
 
+  static bool isInvoiceOrReceipt(CategoryItem item) {
+    final name = item.displayName.toLowerCase();
+    return name.contains('invoice') ||
+        name.contains('receipt') ||
+        name.contains('bill') ||
+        name.contains('order') ||
+        name.contains('quote') ||
+        name.contains('estimate') ||
+        name.contains('statement') ||
+        name.contains('catalog') ||
+        name.contains('slip');
+  }
+
   static bool isPdf(CategoryItem item) {
     return item.fileExtension == '.pdf' || item.mimeType == 'application/pdf';
   }
 
+  static bool isSpreadsheet(CategoryItem item) {
+    const exts = ['.xls', '.xlsx', '.csv', '.tsv', '.ods'];
+    return exts.contains(item.fileExtension) ||
+        item.mimeType.contains('sheet') ||
+        item.mimeType.contains('excel') ||
+        item.mimeType.contains('csv');
+  }
+
+  static bool isPresentation(CategoryItem item) {
+    const exts = ['.ppt', '.pptx', '.odp'];
+    return exts.contains(item.fileExtension) ||
+        item.mimeType.contains('presentation') ||
+        item.mimeType.contains('powerpoint');
+  }
+
   static bool isOfficeDoc(CategoryItem item) {
-    const exts = ['.doc', '.docx', '.xls', '.xlsx', '.ppt', '.pptx', '.csv', '.rtf'];
+    const exts = ['.doc', '.docx', '.rtf', '.txt', '.odt'];
     return exts.contains(item.fileExtension) ||
         item.mimeType.contains('word') ||
-        item.mimeType.contains('excel') ||
-        item.mimeType.contains('sheet') ||
-        item.mimeType.contains('presentation');
+        item.mimeType.contains('document') ||
+        isSpreadsheet(item) ||
+        isPresentation(item);
   }
 
   static bool isArchive(CategoryItem item) {
     const exts = ['.zip', '.rar', '.7z', '.tar', '.gz'];
-    return exts.contains(item.fileExtension) || item.mimeType.contains('zip') || item.mimeType.contains('compressed');
+    return exts.contains(item.fileExtension) ||
+        item.mimeType.contains('zip') ||
+        item.mimeType.contains('compressed');
   }
 }

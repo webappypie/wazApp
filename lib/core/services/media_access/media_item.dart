@@ -10,19 +10,55 @@ import 'package:equatable/equatable.dart';
 
 /// Identifies which chat app a media file came from (REQ-IDX-06).
 enum MediaSource {
-  whatsApp('com.whatsapp'),
-  whatsAppBusiness('com.whatsapp.w4b'),
-  legacyWhatsApp('legacy'), // Pre-scoped-storage /sdcard/WhatsApp/
-  unknown('');
+  whatsApp('com.whatsapp', id: 'whatsapp', displayName: 'WhatsApp', shortLabel: 'WA', badgeLabel: 'WhatsApp'),
+  whatsAppBusiness('com.whatsapp.w4b', id: 'whatsapp_business', displayName: 'WhatsApp Business', shortLabel: 'Business', badgeLabel: 'Business'),
+  legacyWhatsApp('legacy', id: 'whatsapp_legacy', displayName: 'WhatsApp (Legacy)', shortLabel: 'WA', badgeLabel: 'WhatsApp'),
+  unknown('', id: 'unknown', displayName: 'Unknown', shortLabel: '?', badgeLabel: 'Unknown');
 
-  const MediaSource(this.packageName);
+  const MediaSource(
+    this.packageName, {
+    required this.id,
+    required this.displayName,
+    required this.shortLabel,
+    required this.badgeLabel,
+  });
+
   final String packageName;
+  final String id;
+  final String displayName;
+  final String shortLabel;
+  final String badgeLabel;
 
-  static MediaSource fromPackageName(String pkg) {
+  bool get isWhatsApp => this == MediaSource.whatsApp || this == MediaSource.legacyWhatsApp;
+  bool get isBusiness => this == MediaSource.whatsAppBusiness;
+
+  static MediaSource fromPackageName(String? pkg) {
+    if (pkg == null || pkg.isEmpty) return MediaSource.unknown;
     return MediaSource.values.firstWhere(
       (s) => s.packageName == pkg,
+      orElse: () => pkg.toLowerCase().contains('w4b') || pkg.toLowerCase().contains('business')
+          ? MediaSource.whatsAppBusiness
+          : MediaSource.whatsApp,
+    );
+  }
+
+  static MediaSource fromId(String? id) {
+    if (id == null || id.isEmpty) return MediaSource.unknown;
+    return MediaSource.values.firstWhere(
+      (s) => s.id == id,
       orElse: () => MediaSource.unknown,
     );
+  }
+
+  static MediaSource fromPackageOrPath(String? pkg, String? path) {
+    final combined = '${pkg ?? ""} ${path ?? ""}'.toLowerCase();
+    if (combined.contains('w4b') || combined.contains('business')) {
+      return MediaSource.whatsAppBusiness;
+    }
+    if (combined.contains('whatsapp')) {
+      return MediaSource.whatsApp;
+    }
+    return MediaSource.fromPackageName(pkg);
   }
 }
 

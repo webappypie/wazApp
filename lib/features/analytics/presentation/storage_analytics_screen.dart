@@ -8,6 +8,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/design/tokens.dart';
 import '../../../core/di/providers.dart';
 import '../../../core/widgets/app_scaffold.dart';
+import '../../../core/widgets/source_badge.dart';
+import '../../../core/widgets/source_filter_bar.dart';
 import '../../../core/widgets/state_widgets.dart';
 import '../domain/analytics_models.dart';
 import 'analytics_controller.dart';
@@ -79,8 +81,9 @@ class StorageAnalyticsScreen extends ConsumerWidget {
   }
 }
 
-class _AnalyticsBody extends StatelessWidget {
+class _AnalyticsBody extends ConsumerWidget {
   const _AnalyticsBody({
+    super.key,
     required this.trends,
     required this.currentRange,
     required this.isPremium,
@@ -100,8 +103,9 @@ class _AnalyticsBody extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final scheme = Theme.of(context).colorScheme;
+    final bizInsights = ref.watch(businessInsightsProvider).asData?.value;
 
     return ListView(
       padding: const EdgeInsets.symmetric(
@@ -109,6 +113,12 @@ class _AnalyticsBody extends StatelessWidget {
         vertical: AppSpacing.lg,
       ),
       children: [
+        // 0. Source Filter Bar (auto-hides when single source) (REQ-19)
+        const Padding(
+          padding: EdgeInsets.only(bottom: AppSpacing.md),
+          child: SourceFilterBar(),
+        ),
+
         // 1. Time Range Selector Tabs
         Container(
           padding: const EdgeInsets.all(AppSpacing.xs / 2),
@@ -314,6 +324,12 @@ class _AnalyticsBody extends StatelessWidget {
 
         const SizedBox(height: AppSpacing.lg),
 
+        // 4b. WhatsApp Business Specific Insights (REQ-13)
+        if (bizInsights != null && bizInsights.hasData) ...[
+          _BusinessInsightsCard(insights: bizInsights),
+          const SizedBox(height: AppSpacing.lg),
+        ],
+
         // 5. Cold-Start Historical Reconstruction Banner (REQ-ANL-02)
         Container(
           padding: const EdgeInsets.all(AppSpacing.cardPadding),
@@ -487,4 +503,182 @@ class _CategoryIndicator extends StatelessWidget {
 
 extension on BorderSide {
   Border toBorder() => Border.fromBorderSide(this);
+}
+
+class _BusinessInsightsCard extends StatelessWidget {
+  const _BusinessInsightsCard({required this.insights});
+  final BusinessInsights insights;
+
+  String _formatBytes(int bytes) {
+    if (bytes.abs() >= 1024 * 1024 * 1024) {
+      return '${(bytes / (1024 * 1024 * 1024)).toStringAsFixed(1)} GB';
+    }
+    return '${(bytes / (1024 * 1024)).round()} MB';
+  }
+
+  String _formatDuration(int sec) {
+    final m = sec ~/ 60;
+    return '$m min';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+
+    return Card(
+      elevation: 0,
+      color: scheme.surfaceContainerHighest.withValues(alpha: 0.3),
+      shape: RoundedRectangleBorder(
+        borderRadius: AppRadius.cardRadius,
+        side: BorderSide(color: scheme.outlineVariant.withValues(alpha: 0.5)),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(AppSpacing.cardPadding),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(6),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF128C7E).withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Icon(Icons.business_center_rounded, size: 18, color: Color(0xFF128C7E)),
+                ),
+                const SizedBox(width: AppSpacing.sm),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'WhatsApp Business Insights',
+                        style: AppTextStyles.titleSmall.copyWith(fontWeight: FontWeight.w600),
+                      ),
+                      Text(
+                        '${insights.totalCount} business media items • ${_formatBytes(insights.totalBytes)}',
+                        style: AppTextStyles.bodySmall.copyWith(color: scheme.onSurfaceVariant),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: AppSpacing.md),
+            Row(
+              children: [
+                Expanded(
+                  child: _MiniMetricTile(
+                    label: 'Invoices & Bills',
+                    value: '${insights.invoicesCount} files',
+                    subtitle: _formatBytes(insights.invoicesBytes),
+                    icon: Icons.receipt_long_rounded,
+                    color: Colors.teal,
+                  ),
+                ),
+                const SizedBox(width: AppSpacing.sm),
+                Expanded(
+                  child: _MiniMetricTile(
+                    label: 'Spreadsheets & Docs',
+                    value: '${insights.documentsCount + insights.spreadsheetsCount} files',
+                    subtitle: _formatBytes(insights.documentsBytes + insights.spreadsheetsBytes),
+                    icon: Icons.description_outlined,
+                    color: Colors.blue,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: AppSpacing.sm),
+            Row(
+              children: [
+                Expanded(
+                  child: _MiniMetricTile(
+                    label: 'Catalog & Videos',
+                    value: '${insights.catalogVideosCount} videos',
+                    subtitle: _formatBytes(insights.catalogVideosBytes),
+                    icon: Icons.video_library_outlined,
+                    color: Colors.amber.shade800,
+                  ),
+                ),
+                const SizedBox(width: AppSpacing.sm),
+                Expanded(
+                  child: _MiniMetricTile(
+                    label: 'Voice Notes',
+                    value: '${insights.voiceNotesCount} notes',
+                    subtitle: _formatDuration(insights.voiceNotesDurationSec),
+                    icon: Icons.mic_none_rounded,
+                    color: Colors.purple,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _MiniMetricTile extends StatelessWidget {
+  const _MiniMetricTile({
+    required this.label,
+    required this.value,
+    required this.subtitle,
+    required this.icon,
+    required this.color,
+  });
+
+  final String label;
+  final String value;
+  final String subtitle;
+  final IconData icon;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.sm),
+      decoration: BoxDecoration(
+        color: scheme.surface,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: scheme.outlineVariant.withValues(alpha: 0.4)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(icon, size: 14, color: color),
+              const SizedBox(width: 4),
+              Expanded(
+                child: Text(
+                  label,
+                  style: AppTextStyles.labelSmall.copyWith(
+                    color: scheme.onSurfaceVariant,
+                    fontSize: 11,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(
+            value,
+            style: AppTextStyles.labelMedium.copyWith(fontWeight: FontWeight.w700),
+          ),
+          Text(
+            subtitle,
+            style: AppTextStyles.bodySmall.copyWith(
+              color: scheme.outline,
+              fontSize: 10,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }

@@ -65,6 +65,27 @@ class SettingsNotifier extends Notifier<SettingsState> {
     await _syncBackgroundScan();
   }
 
+  Future<void> setAutoScanSourceOption(AutoScanSourceOption option) async {
+    state = state.copyWith(autoScanSourceOption: option);
+    await _syncBackgroundScan();
+  }
+
+  Future<void> setWhatsAppEnabled(bool enabled, {bool removeIndexed = false}) async {
+    state = state.copyWith(whatsAppEnabled: enabled);
+    if (removeIndexed && !enabled) {
+      final db = ref.read(appDatabaseProvider);
+      await db.deleteItemsBySource('com.whatsapp');
+    }
+  }
+
+  Future<void> setWhatsAppBusinessEnabled(bool enabled, {bool removeIndexed = false}) async {
+    state = state.copyWith(whatsAppBusinessEnabled: enabled);
+    if (removeIndexed && !enabled) {
+      final db = ref.read(appDatabaseProvider);
+      await db.deleteItemsBySource('com.whatsapp.w4b');
+    }
+  }
+
   Future<void> setQuietHoursEnabled(bool enabled) async {
     state = state.copyWith(quietHoursEnabled: enabled);
     await _repo.saveQuietHours(

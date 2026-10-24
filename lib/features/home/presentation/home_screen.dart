@@ -19,9 +19,13 @@ import 'package:go_router/go_router.dart';
 import '../../../core/design/tokens.dart';
 import '../../../core/di/providers.dart';
 import '../../../core/router/app_router.dart';
+import '../../../core/services/media_access/media_access_service.dart';
+import '../../indexing/presentation/indexing_providers.dart';
 import '../../../core/widgets/app_scaffold.dart';
 import '../../../core/widgets/monetisation_widgets.dart';
 import '../../../core/widgets/partial_access_banner.dart';
+import '../../../core/widgets/source_badge.dart';
+import '../../../core/widgets/source_filter_bar.dart';
 import '../../../core/widgets/state_widgets.dart';
 import '../domain/home_models.dart';
 import 'home_providers.dart';
@@ -38,6 +42,11 @@ class HomeScreen extends ConsumerWidget {
         title: const Text('WappTidy'),
         centerTitle: false,
         actions: [
+          IconButton(
+            icon: const Icon(Icons.search_rounded),
+            tooltip: 'Search Media',
+            onPressed: () => context.go(AppRoutes.search),
+          ),
           if (kDebugMode)
             IconButton(
               icon: const Icon(Icons.developer_mode_outlined),
@@ -90,9 +99,21 @@ class _HomeBody extends ConsumerWidget {
           vertical: AppSpacing.lg,
         ),
         children: [
+          // 0. Source filter bar (auto-hides if only 1 source installed/indexed)
+          const Padding(
+            padding: EdgeInsets.only(bottom: AppSpacing.sm),
+            child: SourceFilterBar(),
+          ),
+
           // 1. Hero card (REQ-HOM-01)
           _HeroCard(dashboard: dashboard),
           const SizedBox(height: AppSpacing.lg),
+
+          // 1b. Media by App breakdown card (REQ-7)
+          if (dashboard.sourceBreakdown != null && dashboard.sourceBreakdown!.hasBothSources) ...[
+            _SourceBreakdownCard(breakdown: dashboard.sourceBreakdown!),
+            const SizedBox(height: AppSpacing.lg),
+          ],
 
           // 2. Media Health score (REQ-HOM-02)
           _HealthScoreCard(result: dashboard.healthScore),
@@ -212,6 +233,38 @@ class _HeroCard extends ConsumerWidget {
                   .copyWith(color: scheme.onPrimaryContainer.withValues(alpha: 0.7)),
             ),
 
+          // Per-source breakdown strip (REQ-6)
+          if (dashboard.sourceBreakdown != null && dashboard.sourceBreakdown!.hasBothSources) ...[
+            const SizedBox(height: AppSpacing.sm),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              decoration: BoxDecoration(
+                color: scheme.surface.withValues(alpha: 0.2),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'WhatsApp: ${dashboard.sourceBreakdown!.formattedWhatsAppBytes}',
+                    style: AppTextStyles.labelSmall.copyWith(
+                      color: scheme.onPrimaryContainer,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  Text('•', style: TextStyle(color: scheme.onPrimaryContainer.withValues(alpha: 0.6))),
+                  Text(
+                    'Business: ${dashboard.sourceBreakdown!.formattedBusinessBytes}',
+                    style: AppTextStyles.labelSmall.copyWith(
+                      color: scheme.onPrimaryContainer,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+
           const SizedBox(height: AppSpacing.lg),
 
           // Recoverable size
@@ -228,7 +281,7 @@ class _HeroCard extends ConsumerWidget {
             width: double.infinity,
             height: 48,
             child: ElevatedButton(
-              onPressed: () => _navigateToClean(context),
+              onPressed: () => _handlePrimaryCta(context, ref),
               style: ElevatedButton.styleFrom(
                 backgroundColor: scheme.primary,
                 foregroundColor: scheme.onPrimary,
@@ -236,7 +289,7 @@ class _HeroCard extends ConsumerWidget {
                 shape: const RoundedRectangleBorder(
                     borderRadius: AppRadius.buttonRadius),
               ),
-              child: const Text('Review Cleanup'),
+              child: Text(dashboard.totalItemCount == 0 ? 'Scan Media' : 'Review Cleanup'),
             ),
           ),
         ],
@@ -244,8 +297,217 @@ class _HeroCard extends ConsumerWidget {
     );
   }
 
-  void _navigateToClean(BuildContext context) {
-    context.go(AppRoutes.clean);
+  Future<void> _handlePrimaryCta(BuildContext context, WidgetRef ref) async {
+    if (dashboard.totalItemCount == 0) {
+      final perm = await ref.read(mediaAccessServiceProvider).checkPermission();
+      if (perm != MediaPermissionState.granted && perm != MediaPermissionState.limited) {
+        final req = await ref.read(mediaAccessServiceProvider).requestPermission();
+        ref.invalidate(mediaPermissionStateProvider);
+        if (req != MediaPermissionState.granted && req != MediaPermissionState.limited) {
+          if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Storage permission is required to scan your WhatsApp media.')),
+            );
+          }
+          return;
+        }
+      }
+      ref.read(indexingServiceProvider).startScan();
+    }
+    if (context.mounted) {
+      context.go(AppRoutes.clean);
+    }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Media by App breakdown card (REQ-7)
+// ---------------------------------------------------------------------------
+
+class _SourceBreakdownCard extends ConsumerWidget {
+  const _SourceBreakdownCard({required this.breakdown});
+  final SourceBreakdown breakdown;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final scheme = Theme.of(context).colorScheme;
+    final activeFilter = ref.watch(activeSourceFilterProvider);
+
+    final waFlex = (breakdown.whatsAppPercent * 10).round().clamp(1, 1000);
+    final bizFlex = (breakdown.businessPercent * 10).round().clamp(1, 1000);
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(AppSpacing.md),
+      decoration: BoxDecoration(
+        color: scheme.surfaceContainerHighest.withValues(alpha: 0.35),
+        borderRadius: AppRadius.cardRadius,
+        border: Border.all(color: scheme.outlineVariant.withValues(alpha: 0.5)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Media by App',
+                style: AppTextStyles.titleSmall.copyWith(
+                  fontWeight: FontWeight.w600,
+                  color: scheme.onSurface,
+                ),
+              ),
+              if (breakdown.totalPotentialCleanupBytes > 0)
+                Text(
+                  'Potential cleanup: ${breakdown.formattedTotalCleanup}',
+                  style: AppTextStyles.labelSmall.copyWith(
+                    color: scheme.primary,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.md),
+
+          // Split progress bar
+          ClipRRect(
+            borderRadius: BorderRadius.circular(4),
+            child: SizedBox(
+              height: 8,
+              child: Row(
+                children: [
+                  Expanded(
+                    flex: waFlex,
+                    child: Container(color: const Color(0xFF25D366)),
+                  ),
+                  const SizedBox(width: 2),
+                  Expanded(
+                    flex: bizFlex,
+                    child: Container(color: const Color(0xFF128C7E)),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: AppSpacing.md),
+
+          // App rows
+          _AppRow(
+            color: const Color(0xFF25D366),
+            title: 'WhatsApp',
+            count: breakdown.whatsAppCount,
+            formattedSize: breakdown.formattedWhatsAppBytes,
+            cleanupSize: breakdown.formattedWhatsAppCleanup,
+            isSelected: activeFilter == MediaSourceFilter.whatsApp,
+            onTap: () {
+              ref.read(activeSourceFilterProvider.notifier).setFilter(
+                    activeFilter == MediaSourceFilter.whatsApp
+                        ? MediaSourceFilter.all
+                        : MediaSourceFilter.whatsApp,
+                  );
+            },
+          ),
+          const SizedBox(height: AppSpacing.xs),
+          _AppRow(
+            color: const Color(0xFF128C7E),
+            title: 'WhatsApp Business',
+            count: breakdown.businessCount,
+            formattedSize: breakdown.formattedBusinessBytes,
+            cleanupSize: breakdown.formattedBusinessCleanup,
+            isSelected: activeFilter == MediaSourceFilter.whatsAppBusiness,
+            onTap: () {
+              ref.read(activeSourceFilterProvider.notifier).setFilter(
+                    activeFilter == MediaSourceFilter.whatsAppBusiness
+                        ? MediaSourceFilter.all
+                        : MediaSourceFilter.whatsAppBusiness,
+                  );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _AppRow extends StatelessWidget {
+  const _AppRow({
+    required this.color,
+    required this.title,
+    required this.count,
+    required this.formattedSize,
+    required this.cleanupSize,
+    required this.isSelected,
+    required this.onTap,
+  });
+
+  final Color color;
+  final String title;
+  final int count;
+  final String formattedSize;
+  final String cleanupSize;
+  final bool isSelected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(8),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+        decoration: BoxDecoration(
+          color: isSelected ? scheme.primaryContainer.withValues(alpha: 0.35) : Colors.transparent,
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 10,
+              height: 10,
+              decoration: BoxDecoration(
+                color: color,
+                shape: BoxShape.circle,
+              ),
+            ),
+            const SizedBox(width: AppSpacing.sm),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: AppTextStyles.labelMedium.copyWith(
+                      fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600,
+                    ),
+                  ),
+                  Text(
+                    '$count files • $formattedSize',
+                    style: AppTextStyles.bodySmall.copyWith(
+                      color: scheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            if (cleanupSize != '0 B')
+              Text(
+                '~$cleanupSize cleanable',
+                style: AppTextStyles.labelSmall.copyWith(
+                  color: scheme.primary,
+                ),
+              ),
+            const SizedBox(width: 4),
+            Icon(
+              isSelected ? Icons.check_circle_rounded : Icons.chevron_right_rounded,
+              size: 16,
+              color: isSelected ? scheme.primary : scheme.outline,
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
 

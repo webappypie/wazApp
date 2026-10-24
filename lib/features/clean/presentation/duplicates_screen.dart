@@ -31,15 +31,21 @@ class DuplicatesScreen extends ConsumerWidget {
       initialViewMode: CategoryViewMode.list,
       emptyTitle: 'No exact duplicates found',
       emptyBody: 'All files in your library appear to be unique.',
-      // REQ-DUP-03: Pre-select non-original copies within a group; Original is never pre-selected
+      // REQ-DUP-03 & Critical Safety Rule:
+      // Intra-app duplicate non-originals are pre-selected.
+      // Cross-app duplicates do NOT auto-preselect any copy so users choose explicitly.
       initialSelectedIdsBuilder: (items) {
-        return items.where((item) => !item.isOriginal).map((item) => item.id).toSet();
+        return items
+            .where((item) => !item.isOriginal && !item.isCrossApp)
+            .map((item) => item.id)
+            .toSet();
       },
       // REQ-DUP-02 / REQ-DUP-04: Header showing potential savings and separate feature disclaimer
       headerBannerBuilder: (ctx, allItems, visibleItems) {
         final scheme = Theme.of(ctx).colorScheme;
         final duplicateCopies = allItems.where((it) => !it.isOriginal).toList();
         final savingsBytes = duplicateCopies.fold(0, (sum, it) => sum + it.sizeBytes);
+        final hasCrossApp = allItems.any((it) => it.isCrossApp);
 
         if (allItems.isEmpty) return const SizedBox.shrink();
 
@@ -75,7 +81,9 @@ class DuplicatesScreen extends ConsumerWidget {
               ),
               const SizedBox(height: 4),
               Text(
-                'Identical byte-for-byte matches. Oldest copy marked "Original" is preserved by default.',
+                hasCrossApp
+                    ? 'Identical byte matches. Oldest copy is preserved. Cross-app copies require manual selection to protect work/personal files.'
+                    : 'Identical byte-for-byte matches. Oldest copy marked "Original" is preserved by default.',
                 style: AppTextStyles.bodySmall.copyWith(
                   color: scheme.onPrimaryContainer.withValues(alpha: 0.8),
                 ),

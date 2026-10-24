@@ -1,0 +1,3 @@
+# Phase 5 — WAPCentral, Ads, Promotions, Notifications, Billing and Release
+
+Reread the actual root guide before coding; its documented contract overrides assumptions. Map each guide requirement to code/platform setup. Use Firebase only where required; no app-owned backend or media uploads. Implement documented notifications/ads/promotions through an adapter. Test ads only, no live ad clicks. Core features survive offline/malformed config. Premium ad suppression requires verified entitlement. Implement purchase/restore only with owner-supplied product ID; otherwise document setup blocker. Test billing sandbox flows, notification denial/opt-out, privacy, release signing and checklist. Do not claim iOS archive validation without Xcode/CI evidence.

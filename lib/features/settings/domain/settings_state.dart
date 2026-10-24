@@ -53,12 +53,25 @@ enum DuplicateKeepRule {
   final String label;
 }
 
+/// Auto-scan media source options (REQ-17).
+enum AutoScanSourceOption {
+  both('Both Apps'),
+  whatsAppOnly('WhatsApp Only'),
+  businessOnly('WhatsApp Business Only');
+
+  const AutoScanSourceOption(this.label);
+  final String label;
+}
+
 /// Settings state representing all user-configurable preferences.
 class SettingsState {
   const SettingsState({
     this.themePreference = AppThemePreference.system,
     this.scanFrequency = ScanFrequency.weekly,
     this.scanChargingOnly = true,
+    this.autoScanSourceOption = AutoScanSourceOption.both,
+    this.whatsAppEnabled = true,
+    this.whatsAppBusinessEnabled = true,
     this.duplicateKeepRule = DuplicateKeepRule.keepOldest,
     this.confirmBeforeDelete = true,
     this.notifyScanReminders = false,
@@ -72,6 +85,9 @@ class SettingsState {
   final AppThemePreference themePreference;
   final ScanFrequency scanFrequency;
   final bool scanChargingOnly;
+  final AutoScanSourceOption autoScanSourceOption;
+  final bool whatsAppEnabled;
+  final bool whatsAppBusinessEnabled;
   final DuplicateKeepRule duplicateKeepRule;
   final bool confirmBeforeDelete;
   final bool notifyScanReminders;
@@ -85,6 +101,9 @@ class SettingsState {
     AppThemePreference? themePreference,
     ScanFrequency? scanFrequency,
     bool? scanChargingOnly,
+    AutoScanSourceOption? autoScanSourceOption,
+    bool? whatsAppEnabled,
+    bool? whatsAppBusinessEnabled,
     DuplicateKeepRule? duplicateKeepRule,
     bool? confirmBeforeDelete,
     bool? notifyScanReminders,
@@ -98,6 +117,9 @@ class SettingsState {
       themePreference: themePreference ?? this.themePreference,
       scanFrequency: scanFrequency ?? this.scanFrequency,
       scanChargingOnly: scanChargingOnly ?? this.scanChargingOnly,
+      autoScanSourceOption: autoScanSourceOption ?? this.autoScanSourceOption,
+      whatsAppEnabled: whatsAppEnabled ?? this.whatsAppEnabled,
+      whatsAppBusinessEnabled: whatsAppBusinessEnabled ?? this.whatsAppBusinessEnabled,
       duplicateKeepRule: duplicateKeepRule ?? this.duplicateKeepRule,
       confirmBeforeDelete: confirmBeforeDelete ?? this.confirmBeforeDelete,
       notifyScanReminders: notifyScanReminders ?? this.notifyScanReminders,

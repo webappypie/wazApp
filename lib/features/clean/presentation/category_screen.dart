@@ -18,6 +18,7 @@ import '../../../core/widgets/app_scaffold.dart';
 import '../../../core/widgets/filter_chip.dart';
 import '../../../core/widgets/media_tiles.dart';
 import '../../../core/widgets/partial_access_banner.dart';
+import '../../../core/widgets/source_filter_bar.dart';
 import '../../../core/widgets/state_widgets.dart';
 import '../../backup/presentation/backup_controller.dart';
 import '../domain/category_data_source.dart';
@@ -138,8 +139,12 @@ class _CategoryScreenState extends ConsumerState<CategoryScreen> {
   // ---------------------------------------------------------------------------
 
   List<CategoryItem> get _filteredAndSortedItems {
+    final sourceFilter = ref.watch(activeSourceFilterProvider);
     final activeFilter = _filters[_selectedFilterIndex];
-    final filtered = _allItems.where(activeFilter.predicate).toList();
+    final filtered = _allItems
+        .where((item) => sourceFilter.matches(item.sourceApp))
+        .where(activeFilter.predicate)
+        .toList();
 
     filtered.sort((a, b) {
       int cmp;
@@ -577,6 +582,7 @@ class _CategoryScreenState extends ConsumerState<CategoryScreen> {
           // Header summary banner (if provided by category)
           if (widget.headerBannerBuilder != null)
             widget.headerBannerBuilder!(context, _allItems, visibleItems),
+          const SourceFilterBar(),
           // Filter chip row
           if (_filters.length > 1)
             Padding(
@@ -645,6 +651,7 @@ class _CategoryScreenState extends ConsumerState<CategoryScreen> {
           durationLabel: item.formattedDuration,
           isProtected: item.isProtected,
           badgeLabel: item.badgeLabel,
+          sourceApp: item.sourceApp,
           onTap: () => _handleItemTap(item),
           onLongPress: () => _toggleSelection(item.id),
         );
@@ -733,6 +740,7 @@ class _CategoryScreenState extends ConsumerState<CategoryScreen> {
           subtitle: subtitle,
           isSelected: isSelected,
           isProtected: item.isProtected,
+          sourceApp: item.sourceApp,
           trailing: badge,
           onTap: () => _handleItemTap(item),
           onLongPress: () => _toggleSelection(item.id),

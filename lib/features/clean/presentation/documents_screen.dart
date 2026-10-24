@@ -65,8 +65,16 @@ class DocumentsScreen extends ConsumerWidget {
           predicate: (_) => true,
         ),
         CategoryFilterOption(
+          label: 'Invoices & Bills',
+          predicate: (item) => DocumentsDataSource.isInvoiceOrReceipt(item),
+        ),
+        CategoryFilterOption(
           label: 'PDFs',
           predicate: (item) => DocumentsDataSource.isPdf(item),
+        ),
+        CategoryFilterOption(
+          label: 'Spreadsheets',
+          predicate: (item) => DocumentsDataSource.isSpreadsheet(item),
         ),
         CategoryFilterOption(
           label: 'Office Docs',

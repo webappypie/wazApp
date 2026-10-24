@@ -26,6 +26,7 @@ import '../../features/clean/presentation/documents_screen.dart';
 import '../../features/analytics/presentation/storage_analytics_screen.dart';
 import '../../features/clean/data/all_indexed_media_data_source.dart';
 import '../../features/organize/presentation/organize_screen.dart';
+import '../../features/search/presentation/search_screen.dart';
 import '../../features/backup/presentation/backup_screen.dart';
 import '../../features/bin/presentation/bin_screen.dart';
 import '../../features/settings/presentation/settings_screen.dart';
@@ -39,6 +40,8 @@ import '../../features/onboarding/presentation/permission_denied_screen.dart';
 // Route path constants — single source of truth.
 class AppRoutes {
   AppRoutes._();
+
+  static const search = '/search';
 
 
   // Onboarding / permission flow
@@ -96,6 +99,12 @@ final appRouter = GoRouter(
     GoRoute(
       path: AppRoutes.permissionDenied,
       builder: (context, state) => const PermissionDeniedScreen(),
+    ),
+
+    // --- Search (REQ-11) ---
+    GoRoute(
+      path: AppRoutes.search,
+      builder: (context, state) => const SearchScreen(),
     ),
 
     // --- Google Drive Cloud Backup (REQ-BAK-01..03) ---

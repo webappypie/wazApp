@@ -1,0 +1,14 @@
+# Baseline Audit
+- Date / branch / commit:
+- Framework/toolchain / OS:
+- Build variants:
+- Git clean/dirty state:
+- Firebase config filenames found (names only):
+- WAPCentral guide filename/version:
+- Commands and actual results:
+- Test/build results:
+- Environment blockers:
+- Critical security/privacy findings:
+- P0/P1 findings:
+- Recommended implementation order:
+- Owner questions:

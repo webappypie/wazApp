@@ -98,7 +98,17 @@ class DuplicatesDataSource extends CategoryDataSource {
       final saving = (groupMap['potentialSaving'] as num?)?.toInt() ?? (fileSize * (copyCount - 1));
       totalSavings += saving;
 
-      final groupTitle = 'Group $groupIndex: $copyCount copies • ${formatBytes(fileSize * copyCount)} (Save ${formatBytes(saving)})';
+      // Check if group contains items from multiple sources
+      final sourceAppsInGroup = <String>{};
+      for (final itemRaw in rawItems) {
+        if (itemRaw is Map) {
+          final s = itemRaw['sourceApp']?.toString();
+          if (s != null && s.isNotEmpty) sourceAppsInGroup.add(s);
+        }
+      }
+      final isCrossApp = sourceAppsInGroup.length > 1;
+      final crossAppTag = isCrossApp ? 'Cross-App • ' : '';
+      final groupTitle = 'Group $groupIndex: $copyCount copies • $crossAppTag${formatBytes(fileSize * copyCount)} (Save ${formatBytes(saving)})';
 
       for (final itemRaw in rawItems) {
         if (itemRaw is! Map) continue;
@@ -120,6 +130,7 @@ class DuplicatesDataSource extends CategoryDataSource {
           durationMs: (map['durationMs'] as num?)?.toInt() ?? 0,
           isProtected: map['isProtected'] == true,
           isOriginal: isOriginal,
+          isCrossApp: isCrossApp,
           badgeLabel: isOriginal ? 'Original' : 'Duplicate',
           groupTitle: groupTitle,
         ));
@@ -162,7 +173,14 @@ class DuplicatesDataSource extends CategoryDataSource {
       final saving = fileSize * (copyCount - 1);
       totalSavings += saving;
 
-      final groupTitle = 'Group $groupIndex: $copyCount copies • ${formatBytes(fileSize * copyCount)} (Save ${formatBytes(saving)})';
+      final sourceAppsInGroup = group
+          .map((i) => i.sourceApp)
+          .where((s) => s.isNotEmpty)
+          .toSet();
+      final isCrossApp = sourceAppsInGroup.length > 1;
+      final crossAppTag = isCrossApp ? 'Cross-App • ' : '';
+
+      final groupTitle = 'Group $groupIndex: $copyCount copies • $crossAppTag${formatBytes(fileSize * copyCount)} (Save ${formatBytes(saving)})';
 
       for (final item in group) {
         final isOriginal = item.id == original.id;
@@ -181,6 +199,7 @@ class DuplicatesDataSource extends CategoryDataSource {
           durationMs: item.durationMs,
           isProtected: item.isProtected,
           isOriginal: isOriginal,
+          isCrossApp: isCrossApp,
           badgeLabel: isOriginal ? 'Original' : 'Duplicate',
           groupTitle: groupTitle,
         ));

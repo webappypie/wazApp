@@ -7,7 +7,7 @@ import 'home_models.dart';
 
 abstract interface class HomeRepository {
   /// Build the full HomeDashboard from the current Drift index.
-  Future<HomeDashboard> loadDashboard();
+  Future<HomeDashboard> loadDashboard({String? sourceApp});
 
   /// Add a recent-activity entry after a cleanup action completes.
   Future<void> recordActivity({

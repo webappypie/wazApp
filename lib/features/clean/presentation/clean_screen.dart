@@ -15,7 +15,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/design/tokens.dart';
+import '../../../core/di/providers.dart';
 import '../../../core/router/app_router.dart';
+import '../../../core/services/installed_apps/installed_apps_service.dart';
+import '../../../core/services/media_access/media_access_service.dart';
+import '../../../core/services/media_access/media_item.dart';
 import '../../../core/widgets/app_scaffold.dart';
 import '../../../core/widgets/state_widgets.dart';
 import '../../../core/widgets/partial_access_banner.dart';
@@ -82,15 +86,26 @@ class _CleanBody extends ConsumerWidget {
 // Idle — start scan CTA
 // ---------------------------------------------------------------------------
 
-class _IdleView extends ConsumerWidget {
+class _IdleView extends ConsumerStatefulWidget {
   const _IdleView({this.wasCancelled = false});
   final bool wasCancelled;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_IdleView> createState() => _IdleViewState();
+}
+
+class _IdleViewState extends ConsumerState<_IdleView> {
+  bool _scanWhatsApp = true;
+  bool _scanWhatsAppBusiness = true;
+
+  @override
+  Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final installedAsync = ref.watch(installedSourcesProvider);
+    final installed = installedAsync.value ?? InstalledSources.whatsAppOnly;
+
     return Center(
-      child: Padding(
+      child: SingleChildScrollView(
         padding: const EdgeInsets.all(AppSpacing.xl),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -99,28 +114,73 @@ class _IdleView extends ConsumerWidget {
                 size: 72, color: scheme.primary.withValues(alpha: 0.6)),
             const SizedBox(height: AppSpacing.lg),
             Text(
-              wasCancelled ? 'Scan cancelled' : 'Ready to clean',
+              widget.wasCancelled ? 'Scan cancelled' : 'Ready to clean',
               style: AppTextStyles.headlineSmall
                   .copyWith(color: scheme.onSurface),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: AppSpacing.sm),
             Text(
-              wasCancelled
+              widget.wasCancelled
                   ? 'Your media was not changed. Tap below to start again.'
-                  : 'Scan your WhatsApp media to find duplicates, large files '
+                  : 'Scan your messaging media to find duplicates, large files '
                     'and old content you can safely remove.',
               style: AppTextStyles.bodyMedium
                   .copyWith(color: scheme.onSurfaceVariant),
               textAlign: TextAlign.center,
             ),
-            const SizedBox(height: AppSpacing.xxl),
+            const SizedBox(height: AppSpacing.lg),
+
+            if (installed.hasBoth) ...[
+              Container(
+                decoration: BoxDecoration(
+                  color: scheme.surfaceContainerHighest.withValues(alpha: 0.4),
+                  borderRadius: AppRadius.cardRadius,
+                  border: Border.all(color: scheme.outlineVariant.withValues(alpha: 0.4)),
+                ),
+                padding: const EdgeInsets.all(AppSpacing.md),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Choose media sources',
+                      style: AppTextStyles.titleSmall.copyWith(fontWeight: FontWeight.w600),
+                    ),
+                    const SizedBox(height: AppSpacing.xs),
+                    CheckboxListTile(
+                      dense: true,
+                      contentPadding: EdgeInsets.zero,
+                      title: const Text('WhatsApp'),
+                      value: _scanWhatsApp,
+                      onChanged: (v) {
+                        if (v == false && !_scanWhatsAppBusiness) return;
+                        setState(() => _scanWhatsApp = v ?? true);
+                      },
+                    ),
+                    CheckboxListTile(
+                      dense: true,
+                      contentPadding: EdgeInsets.zero,
+                      title: const Text('WhatsApp Business'),
+                      value: _scanWhatsAppBusiness,
+                      onChanged: (v) {
+                        if (v == false && !_scanWhatsApp) return;
+                        setState(() => _scanWhatsAppBusiness = v ?? true);
+                      },
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: AppSpacing.xl),
+            ] else ...[
+              const SizedBox(height: AppSpacing.lg),
+            ],
+
             SizedBox(
               width: double.infinity,
               height: 52,
               child: ElevatedButton.icon(
                 icon: const Icon(Icons.search_rounded),
-                label: const Text('Scan media'),
+                label: Text(installed.hasBoth ? 'Scan Media' : 'Scan media'),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: scheme.primary,
                   foregroundColor: scheme.onPrimary,
@@ -128,8 +188,34 @@ class _IdleView extends ConsumerWidget {
                   shape: const RoundedRectangleBorder(
                       borderRadius: AppRadius.buttonRadius),
                 ),
-                onPressed: () =>
-                    ref.read(indexingServiceProvider).startScan(),
+                onPressed: () async {
+                  final perm = await ref.read(mediaAccessServiceProvider).checkPermission();
+                  if (perm != MediaPermissionState.granted && perm != MediaPermissionState.limited) {
+                    final req = await ref.read(mediaAccessServiceProvider).requestPermission();
+                    ref.invalidate(mediaPermissionStateProvider);
+                    if (req != MediaPermissionState.granted && req != MediaPermissionState.limited) {
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Storage permission is required to scan your WhatsApp media.')),
+                        );
+                      }
+                      return;
+                    }
+                  }
+
+                  final List<MediaSource>? sources;
+                  if (installed.hasBoth) {
+                    sources = [
+                      if (_scanWhatsApp) MediaSource.whatsApp,
+                      if (_scanWhatsAppBusiness) MediaSource.whatsAppBusiness,
+                    ];
+                  } else if (installed.isBusinessOnly) {
+                    sources = [MediaSource.whatsAppBusiness];
+                  } else {
+                    sources = [MediaSource.whatsApp];
+                  }
+                  ref.read(indexingServiceProvider).startScan(sources: sources);
+                },
               ),
             ),
           ],
@@ -177,7 +263,11 @@ class _ScanProgressView extends ConsumerWidget {
                     size: 18, color: scheme.onSurfaceVariant),
               const SizedBox(width: AppSpacing.sm),
               Text(
-                paused ? 'Scan paused' : 'Scanning your media…',
+                paused
+                    ? 'Scan paused'
+                    : (progress.currentSource != null
+                        ? 'Scanning ${progress.currentSource}…'
+                        : 'Scanning your media…'),
                 style: AppTextStyles.titleMedium
                     .copyWith(color: scheme.onSurface),
               ),
@@ -304,16 +394,32 @@ class _DoneView extends ConsumerWidget {
                 ),
                 const SizedBox(height: AppSpacing.md),
                 statsAsync.when(
-                  data: (stats) => _StatRow(
-                    label: 'WhatsApp media indexed',
-                    value: '${stats.itemCount} items · ${stats.formattedBytes}',
+                  data: (stats) => Column(
+                    children: [
+                      _StatRow(
+                        label: 'Total media indexed',
+                        value: '${stats.itemCount} items · ${stats.formattedBytes}',
+                      ),
+                      if (stats.hasBothSources) ...[
+                        const Divider(height: AppSpacing.md),
+                        _StatRow(
+                          label: 'WhatsApp',
+                          value: '${stats.whatsAppItemCount} items · ${stats.formattedWhatsAppBytes}',
+                        ),
+                        const SizedBox(height: AppSpacing.xs),
+                        _StatRow(
+                          label: 'WhatsApp Business',
+                          value: '${stats.businessItemCount} items · ${stats.formattedBusinessBytes}',
+                        ),
+                      ],
+                    ],
                   ),
                   loading: () => const SizedBox(
                     height: 16,
                     child: LinearProgressIndicator(),
                   ),
                   error: (_, _) => const _StatRow(
-                    label: 'WhatsApp media indexed',
+                    label: 'Media indexed',
                     value: '—',
                   ),
                 ),

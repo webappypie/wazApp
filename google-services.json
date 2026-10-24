@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "430630231819",
+    "project_id": "wazapp-512609",
+    "storage_bucket": "wazapp-512609.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:430630231819:android:f92deef33fa88d31c40c0e",
+        "android_client_info": {
+          "package_name": "com.webappypie.wazapp"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyALnIkqX1jao0EGNblot3nvkl02GrheLMI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

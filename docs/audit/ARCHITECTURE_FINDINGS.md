@@ -1,0 +1,42 @@
+# Architecture Findings — Phase 0
+
+Format: ID · severity · file/evidence · impact · recommended fix. Severity: P0 (blocks release / integrity / privacy), P1 (must fix for agreed scope), P2.
+
+## Keep (sound, reusable)
+- Flutter 3.47 / Dart 3.13, Riverpod 3 (`flutter_riverpod`), `go_router`, Drift + SQLite, layered `core/` + `features/*/{data,domain,presentation}`. Interfaces behind providers with fakes for tests — good seam for WAPCentral/billing adapters.
+- Native Kotlin MethodChannel infrastructure in `MainActivity.kt` (indexer, actions, WorkManager) — reusable pattern for SAF + media export.
+- Soft-delete Bin, confirmation sheets, write-first/verify-then-delete action coordinator (`media_action_coordinator.dart`), design tokens + shared widgets.
+- `AdManager` policy engine (session caps, cool-downs, ad-free windows, kill switch) is pure logic and tested — reusable once fed by WAPCentral config.
+- 212 passing tests (but see A-14: many verify fakes).
+
+## Findings
+
+| ID | Sev | Evidence | Impact | Fix |
+|---|---|---|---|---|
+| A-01 | P0 | Repo is "WappTidy" cleaner: `pubspec.yaml:1`, `AndroidManifest.xml:28`, `build.gradle.kts:11,22`, Kotlin pkg `com.wapptidy.wapptidy`, 11 channels `com.wapptidy/*`, `docs/PROGRESS.md` | The product the owner specified (status saver/editor) does not exist; IDs do not match `google-services.json` (package `com.webappypie.wazapp`) so Firebase/FCM/AdMob cannot work | Owner decision D1; then rename package/namespace/channels/label in one reviewed commit |
+| A-02 | P0 | `app_purchase_service.dart:63-77` `purchase()` sets Premium with no billing; `restorePurchases()` reads own SharedPreferences; entitlement plain string `wapptidy_premium_entitlement` | Anyone gets Premium free; violates PRD "never report success before store confirmation"; user can edit prefs on rooted device | Implement `in_app_purchase` (Play Billing) with owner product ID; verify via store query on start; treat cache only as hint; revoked/refunded handling |
+| A-03 | P0 | `platform_cloud_backup_service.dart` (every method falls back to `FakeCloudBackupService`; fake sign-in e-mail `user@gmail.com`), `features/backup/*`, `settings_screen.dart:268-300` claims "Safe backup" | Fake feature shown to users; cloud backup is a PRD **non-goal** and privacy risk | Delete service, screens, route, settings section, tests |
+| A-04 | P0 | `providers.dart:61-110` Fake* in production DI for analytics, remote config, ads, background tasks, notifications, audio, backup | Users get inert features; ads/notifications/remote config never real | Replace with real adapters or delete the feature |
+| A-05 | P0 | `Firebase.initializeApp` never called; `firebase_core`, `firebase_remote_config` in pubspec but unused; no `com.google.gms.google-services` Gradle plugin; `google-services.json` at repo root (not `android/app/`) | Firebase/FCM dead; unused deps inflate app | Place configs per guide §3 (`android/app/google-services.json`, `ios/Runner/GoogleService-Info.plist`); remove `firebase_remote_config` (guide says WAPCentral is the config source) |
+| A-06 | P0 | `build.gradle.kts:54-58` release falls back to **debug** signing if `key.properties` missing | A release/AAB can silently ship debug-signed | Fail release tasks when keystore absent (owner supplies keystore) |
+| A-07 | P0 | Working tree has 68 uncommitted changes (38 modified, 30 untracked) incl. a coherent unreleased feature set (multi-source WhatsApp / Business, search, source badges) on top of last commit `155aef4`; `android/build/reports/problems/problems-report.html` is tracked | Risk of losing work; build output tracked | Checkpoint commit of the pre-existing work **before** any WazApp change (needs owner OK, see D1); untrack build report |
+| A-08 | P0 | No status access: no SAF, no `.Statuses`, no persisted URI permissions; indexer uses MediaStore buckets of *received* media + hard-coded `Android/media/com.whatsapp/...` direct file fallback (`MediaIndexer.kt:270-277`) | Core product feature missing; direct path read fails under scoped storage on Android 11+ | SAF `ACTION_OPEN_DOCUMENT_TREE` for `Android/media/<pkg>/…/.Statuses`, persist URI, validate WhatsApp and Business separately on real devices (Android 11+ restricts `Android/media` tree selection on some OEMs/versions — must be device-validated) |
+| A-09 | P0 | No `ios/` folder | iOS requirement unimplementable/untestable; Windows host has no Xcode | `flutter create --platforms=ios`; implement Photos/Files import in Dart plugins; mark device/archive verification **blocked-by-environment** |
+| A-10 | P1 | Zero editor/status-maker/private-folder code; no deps (`video_player`, `image`, `local_auth`, `flutter_launcher_icons`, fonts) | P1 features absent | Phases 2–4 |
+| A-11 | P1 | `wap_core_sdk`, `wap_ads_sdk`, `wap_notifications_sdk`, `wap_promo_sdk` are **not on pub.dev** (pub.dev/packages/wap_core_sdk → 404) and not in the repo | Guide-mandated SDK integration cannot be done as written | Blocker B1: owner supplies SDK source (git URL / private registry / path) |
+| A-12 | P1 | `AndroidManifest.xml`: `requestLegacyExternalStorage` (no effect on target 36), `READ_MEDIA_AUDIO` requested although WazApp doesn't need audio, `POST_NOTIFICATIONS` declared (needed for FCM, OK), `queries` for whatsapp packages (OK) | Over-broad permissions → Play policy risk | Reduce to minimum for chosen design (status via SAF needs no media permission; library/import uses pickers) |
+| A-13 | P1 | 44 `catch (_)` swallows (e.g. `app_purchase_service.dart:31,59`), 16 analyzer warnings (unused imports etc.) | Hidden failures | Replace with typed errors/logging; clear warnings |
+| A-14 | P1 | Tests such as `settings_test.dart` "Free users see Upgrade…", `fake_services_test.dart`, `purchase_service_test.dart` assert fake behaviour | Green tests ≠ real behaviour | Replace by tests against real adapters with fake transports |
+| A-15 | P1 | `MediaSourceFilter` hard-codes `'legacy'` source etc.; `ad_manager`'s remote-config keys are Firebase-RC-shaped, not WAPCentral | Wrong config model for guide | Re-model from `/ads/config` once response schema is available (B4) |
+| A-16 | P2 | Dev gallery route `/dev/gallery` guarded by `kDebugMode` (OK); `home_screen` "Component Gallery" button debug-only | fine | none |
+| A-17 | P2 | `docs/PROGRESS.md`, `docs/QA_REPORT.md`, `docs/PRD.md`, `docs/DEV_PROMPT.md`, `docs/store/*` describe WappTidy and claim "Production Release Ready" | Stale/misleading docs | Archive under `docs/legacy-wapptidy/` |
+| A-18 | P0 (security hygiene) | `WAPCentral_WazApp_Integration_Guide.md` (untracked, repo root) contains the **unmasked `X-App-Key`**; `google-services.json`/plist contain Firebase API keys (client keys, normally public) | If committed/pushed, the platform key leaks into git history | Do **not** `git add` the guide; add to `.gitignore` or redact before commit; inject key via `--dart-define=WAP_APP_KEY` (the guide itself allows this); key must never be logged |
+
+## Conflicts / ambiguities inside the WAPCentral guide (authoritative doc, so each needs owner confirmation)
+1. §8 says Promotions/"external house promotions are disabled and NOT required", while §5 marks `wap_promo_sdk` ✓ Required and the header lists "Promotion" as enabled.
+2. §8 shows production AdMob IDs but the same section says "do not hardcode Ad Unit IDs; fetch from `/ads/config`" and prescribes the *test* App ID in `AndroidManifest.xml` (a manifest cannot be fetched at runtime; the production App ID `ca-app-pub-4918750794442822~8675091503` will be needed for release builds).
+3. §6 snippet places the key as `defaultValue` of `String.fromEnvironment` (embeds the secret in source) while §2.1 says never hardcode secrets — we will use `--dart-define` without default.
+4. §6 snippet calls `ServiceControlGuard.showBlockingDialog(navigatorKey.currentContext!, …)` before `runApp` (context is null at that point) and `return`s before `runApp`; implement as a gate widget instead (behaviour per §9 retained).
+5. Response schemas for `GET /ads/config`, `POST /ads/custom/track`, `POST /notifications/devices/register`, `GET /notifications` are **not documented**; only the service-status payload is. Without the SDKs the request/response contracts cannot be implemented without guessing (B1/B4).
+6. §9 reference uses `http`/`url_launcher` packages not in pubspec (can be added, mainstream).
+7. `IS_ADS_ENABLED=false` / `IS_ANALYTICS_ENABLED=false` in the plist are Firebase flags, not conflicting with AdMob via WAPCentral.

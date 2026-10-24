@@ -1,0 +1,3 @@
+# Phase 1 — P0 Core Saver, Platform Access and Library
+
+Use Phase 0 evidence. Repair startup/navigation/state/data integrity. Android: implement supported user-granted status access and validate WhatsApp and WhatsApp Business separately. iOS: Photos/Files import, local library and share/export; no fake WhatsApp private-status feed. Implement real save/copy, validation, progress, cancel/retry and partial-failure handling. Complete library/viewer/search/filters/favourites/recents/bulk actions and metadata reconciliation. Add tests for permission denial/revocation, missing/corrupt sources, low storage and interrupted work. Avoid UI freezes. Update audit evidence.

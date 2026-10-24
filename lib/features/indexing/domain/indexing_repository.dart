@@ -14,6 +14,7 @@ abstract interface class IndexingRepository {
   Stream<ScanProgress> startFullIndex({
     int sinceModifiedSec = 0,
     int generationSince = 0,
+    List<String>? allowedSources,
   });
 
   /// Pause the currently running scan (REQ-IDX-04).

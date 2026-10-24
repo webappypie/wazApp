@@ -75,12 +75,45 @@ class FakeHomeRepository implements HomeRepository {
       ),
     ],
     recentActivity: [],
+    sourceBreakdown: const SourceBreakdown(
+      whatsAppBytes: 2500 * 1024 * 1024,
+      whatsAppCount: 2400,
+      whatsAppPotentialCleanupBytes: 700 * 1024 * 1024,
+      businessBytes: 1596 * 1024 * 1024,
+      businessCount: 1442,
+      businessPotentialCleanupBytes: 324 * 1024 * 1024,
+    ),
   );
 
   void setDashboard(HomeDashboard d) => _dashboard = d;
 
   @override
-  Future<HomeDashboard> loadDashboard() async {
+  Future<HomeDashboard> loadDashboard({String? sourceApp}) async {
+    // If filtered to a specific source, return proportional or filtered view
+    if (sourceApp == 'com.whatsapp') {
+      return HomeDashboard(
+        totalIndexedBytes:  2500 * 1024 * 1024,
+        totalItemCount:     2400,
+        healthScore:        _dashboard.healthScore,
+        recoverable:        _dashboard.recoverable,
+        monthOverMonthDelta: _dashboard.monthOverMonthDelta,
+        opportunities:      _dashboard.opportunities,
+        recentActivity:     List.unmodifiable(_activity),
+        sourceBreakdown:     _dashboard.sourceBreakdown,
+      );
+    } else if (sourceApp == 'com.whatsapp.w4b') {
+      return HomeDashboard(
+        totalIndexedBytes:  1596 * 1024 * 1024,
+        totalItemCount:     1442,
+        healthScore:        _dashboard.healthScore,
+        recoverable:        _dashboard.recoverable,
+        monthOverMonthDelta: _dashboard.monthOverMonthDelta,
+        opportunities:      _dashboard.opportunities,
+        recentActivity:     List.unmodifiable(_activity),
+        sourceBreakdown:     _dashboard.sourceBreakdown,
+      );
+    }
+
     // Merge the activity list so tests see recorded entries.
     return HomeDashboard(
       totalIndexedBytes:  _dashboard.totalIndexedBytes,
@@ -90,6 +123,7 @@ class FakeHomeRepository implements HomeRepository {
       monthOverMonthDelta: _dashboard.monthOverMonthDelta,
       opportunities:      _dashboard.opportunities,
       recentActivity:     List.unmodifiable(_activity),
+      sourceBreakdown:     _dashboard.sourceBreakdown,
     );
   }
 

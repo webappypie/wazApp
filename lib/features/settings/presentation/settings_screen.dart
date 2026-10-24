@@ -20,6 +20,7 @@ import 'package:go_router/go_router.dart';
 import '../../../core/design/tokens.dart';
 import '../../../core/di/providers.dart';
 import '../../../core/router/app_router.dart';
+import '../../../core/services/installed_apps/installed_apps_service.dart';
 import '../../../core/widgets/action_widgets.dart';
 import '../../../core/widgets/buttons.dart';
 import '../domain/settings_state.dart';
@@ -32,6 +33,8 @@ class SettingsScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final settings = ref.watch(settingsNotifierProvider);
     final notifier = ref.read(settingsNotifierProvider.notifier);
+    final installed = ref.watch(installedSourcesProvider).asData?.value ??
+        InstalledSources.neither;
     final isPremium = ref.watch(isPremiumProvider);
     final purchaseService = ref.watch(purchaseServiceProvider);
     final cloudBackup = ref.watch(cloudBackupServiceProvider);
@@ -126,6 +129,26 @@ class SettingsScreen extends ConsumerWidget {
                   }).toList(),
                 ),
               ),
+              if (installed.hasBoth) ...[
+                const Divider(height: 1),
+                ListTile(
+                  title: const Text('Auto-scan media sources'),
+                  subtitle: Text(settings.autoScanSourceOption.label),
+                  trailing: DropdownButton<AutoScanSourceOption>(
+                    value: settings.autoScanSourceOption,
+                    underline: const SizedBox.shrink(),
+                    onChanged: (val) {
+                      if (val != null) notifier.setAutoScanSourceOption(val);
+                    },
+                    items: AutoScanSourceOption.values.map((opt) {
+                      return DropdownMenuItem(
+                        value: opt,
+                        child: Text(opt.label),
+                      );
+                    }).toList(),
+                  ),
+                ),
+              ],
               const Divider(height: 1),
               SwitchListTile.adaptive(
                 title: const Text('Scan on charger only'),
@@ -142,6 +165,62 @@ class SettingsScreen extends ConsumerWidget {
                 ),
                 child: Text(
                   'ℹ️ Background scans detect cleanup opportunities only. WappTidy NEVER deletes files automatically (P-02).',
+                  style: AppTextStyles.bodySmall.copyWith(color: scheme.outline),
+                ),
+              ),
+            ],
+          ),
+
+          const SizedBox(height: AppSpacing.lg),
+
+          // -------------------------------------------------------------------
+          // 2b. Media Sources (REQ-21)
+          // -------------------------------------------------------------------
+          _SettingsSectionHeader(title: 'Media Sources', icon: Icons.apps_rounded),
+          _SettingsCard(
+            children: [
+              SwitchListTile.adaptive(
+                secondary: const Icon(Icons.chat_bubble_outline_rounded, color: Color(0xFF25D366)),
+                title: const Text('WhatsApp'),
+                subtitle: Text(installed.isWhatsAppInstalled ? 'Installed' : 'Not installed on this device'),
+                value: settings.whatsAppEnabled && installed.isWhatsAppInstalled,
+                onChanged: !installed.isWhatsAppInstalled
+                    ? null
+                    : (enabled) => _confirmDisableSource(
+                          context,
+                          appName: 'WhatsApp',
+                          sourceApp: 'com.whatsapp',
+                          currentEnabled: settings.whatsAppEnabled,
+                          onToggle: (removeIndexed) =>
+                              notifier.setWhatsAppEnabled(enabled, removeIndexed: removeIndexed),
+                        ),
+              ),
+              const Divider(height: 1),
+              SwitchListTile.adaptive(
+                secondary: const Icon(Icons.business_center_outlined, color: Color(0xFF128C7E)),
+                title: const Text('WhatsApp Business'),
+                subtitle: Text(installed.isWhatsAppBusinessInstalled ? 'Installed' : 'Not installed on this device'),
+                value: settings.whatsAppBusinessEnabled && installed.isWhatsAppBusinessInstalled,
+                onChanged: !installed.isWhatsAppBusinessInstalled
+                    ? null
+                    : (enabled) => _confirmDisableSource(
+                          context,
+                          appName: 'WhatsApp Business',
+                          sourceApp: 'com.whatsapp.w4b',
+                          currentEnabled: settings.whatsAppBusinessEnabled,
+                          onToggle: (removeIndexed) =>
+                              notifier.setWhatsAppBusinessEnabled(enabled, removeIndexed: removeIndexed),
+                        ),
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(
+                  AppSpacing.cardPadding,
+                  AppSpacing.xs,
+                  AppSpacing.cardPadding,
+                  AppSpacing.cardPadding,
+                ),
+                child: Text(
+                  'ℹ️ Disabling a source skips it in future scans. It NEVER deletes your actual media files from phone storage.',
                   style: AppTextStyles.bodySmall.copyWith(color: scheme.outline),
                 ),
               ),
@@ -493,6 +572,50 @@ class SettingsScreen extends ConsumerWidget {
         ],
       ),
     );
+  }
+
+  static Future<void> _confirmDisableSource(
+    BuildContext context, {
+    required String appName,
+    required String sourceApp,
+    required bool currentEnabled,
+    required void Function(bool removeIndexed) onToggle,
+  }) async {
+    if (currentEnabled) {
+      final action = await showDialog<String>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: Text('Disable scans for $appName?'),
+          content: Text(
+            'Future scans will skip $appName.\n\n'
+            'Do you want to keep currently indexed $appName files in the cleaner or remove them from the index?\n\n'
+            '(Note: No media files will be deleted from your device storage.)',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop('cancel'),
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop('keep'),
+              child: const Text('Keep Indexed'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(ctx).pop('remove'),
+              child: const Text('Remove from Index'),
+            ),
+          ],
+        ),
+      );
+
+      if (action == 'keep') {
+        onToggle(false);
+      } else if (action == 'remove') {
+        onToggle(true);
+      }
+    } else {
+      onToggle(false);
+    }
   }
 }
 

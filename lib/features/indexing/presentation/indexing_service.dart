@@ -17,6 +17,7 @@
 
 import 'dart:async';
 
+import '../../../core/services/media_access/media_item.dart';
 import '../domain/indexing_models.dart';
 import '../domain/indexing_repository.dart';
 
@@ -95,8 +96,10 @@ class IndexingService {
   // ---------------------------------------------------------------------------
 
   /// Run a scan. Decides full vs incremental automatically.
-  Future<void> startScan() async {
+  Future<void> startScan({List<MediaSource>? sources}) async {
     if (_lastProgress.status == ScanStatus.running) return; // already running
+
+    final allowedPackages = sources?.map((s) => s.packageName).toList();
 
     // Read current state for diff decision.
     final currentGen  = await _repo.currentGeneration();
@@ -130,6 +133,7 @@ class IndexingService {
         .startFullIndex(
           sinceModifiedSec: result.sinceModifiedSec,
           generationSince:  result.decision == ScanDecision.incremental ? lastGen : 0,
+          allowedSources:   allowedPackages,
         )
         .listen(
           _emit,

@@ -26,6 +26,7 @@ class CategoryItem {
     this.groupTitle,
     this.badgeLabel,
     this.isOriginal = false,
+    this.isCrossApp = false,
   });
 
   final String id;
@@ -45,6 +46,7 @@ class CategoryItem {
   final String? groupTitle;
   final String? badgeLabel;
   final bool isOriginal;
+  final bool isCrossApp;
 
   bool get isVideo => mimeType.startsWith('video/');
   bool get isAudio => mimeType.startsWith('audio/');
@@ -119,6 +121,7 @@ class CategoryItem {
     String? groupTitle,
     String? badgeLabel,
     bool? isOriginal,
+    bool? isCrossApp,
   }) {
     return CategoryItem(
       id: id ?? this.id,
@@ -138,6 +141,7 @@ class CategoryItem {
       groupTitle: groupTitle ?? this.groupTitle,
       badgeLabel: badgeLabel ?? this.badgeLabel,
       isOriginal: isOriginal ?? this.isOriginal,
+      isCrossApp: isCrossApp ?? this.isCrossApp,
     );
   }
 }

@@ -30,7 +30,13 @@ final homeRepositoryProvider = Provider<HomeRepository>((ref) {
 final homeDashboardProvider =
     FutureProvider.autoDispose<HomeDashboard>((ref) async {
   final repo = ref.watch(homeRepositoryProvider);
-  return repo.loadDashboard();
+  final sourceFilter = ref.watch(activeSourceFilterProvider);
+  final sourceApp = switch (sourceFilter) {
+    MediaSourceFilter.whatsApp => 'com.whatsapp',
+    MediaSourceFilter.whatsAppBusiness => 'com.whatsapp.w4b',
+    MediaSourceFilter.all => null,
+  };
+  return repo.loadDashboard(sourceApp: sourceApp);
 });
 
 /// Call ref.invalidate(refreshHomeDashboardProvider) after any cleanup action

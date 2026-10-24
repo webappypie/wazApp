@@ -16,6 +16,7 @@ class ScanProgress {
     required this.bytesProcessed,
     this.scanVersion = 0,
     this.generation = 0,
+    this.currentSource,
     this.error,
   });
 
@@ -32,6 +33,7 @@ class ScanProgress {
 
   final int scanVersion;
   final int generation;
+  final String? currentSource;
   final String? error;
 
   /// Progress fraction 0.0–1.0. Returns 0 when total is unknown.
@@ -53,6 +55,7 @@ class ScanProgress {
     int? bytesProcessed,
     int? scanVersion,
     int? generation,
+    String? currentSource,
     String? error,
   }) =>
       ScanProgress(
@@ -62,6 +65,7 @@ class ScanProgress {
         bytesProcessed: bytesProcessed ?? this.bytesProcessed,
         scanVersion: scanVersion ?? this.scanVersion,
         generation: generation ?? this.generation,
+        currentSource: currentSource ?? this.currentSource,
         error: error ?? this.error,
       );
 

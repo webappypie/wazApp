@@ -51,8 +51,13 @@ private val WHATSAPP_BUCKETS = setOf(
     "WhatsApp Business Video",
     "WhatsApp Business Audio",
     "WhatsApp Business Documents",
+    "WhatsApp Business Voice Notes",
+    "WhatsApp Business Animated Gifs",
+    "WhatsApp Business Stickers",
+    "WhatsApp Business Profile Photos",
     // Legacy bucket names
     "WhatsApp",
+    "WhatsApp Business",
 )
 
 /** Source app tags derived from bucket name or relative_path. */
@@ -81,8 +86,9 @@ class MediaIndexer(private val context: Context) {
     private val isPaused    = AtomicBoolean(false)
     private val isCancelled = AtomicBoolean(false)
 
-    // State for resume: last dateModified cursor position.
+    // State for resume: last dateModified cursor position and active sources.
     private val resumeCursor = AtomicReference<Long>(0L)
+    private var currentSourceApps: List<String> = listOf(SOURCE_WHATSAPP, SOURCE_WHATSAPP_BUSINESS)
 
     /** EventChannel sink — set by the StreamHandler below. */
     var eventSink: EventChannel.EventSink? = null
@@ -99,17 +105,20 @@ class MediaIndexer(private val context: Context) {
      * [scanVersion] — version number for this pass (written into each row).
      * [generationSince] — MediaStore generation counter for fast-path
      *   change detection (API 29+).
+     * [sourceApps] — list of package names to scan ('com.whatsapp', 'com.whatsapp.w4b').
      */
     fun startIndex(
         sinceModifiedSec: Long = 0L,
         scanVersion: Int = 1,
         generationSince: Long = 0L,
+        sourceApps: List<String> = listOf(SOURCE_WHATSAPP, SOURCE_WHATSAPP_BUSINESS),
     ) {
+        currentSourceApps = sourceApps
         isPaused.set(false)
         isCancelled.set(false)
         currentJob?.cancel()
         currentJob = scope.launch {
-            runIndex(sinceModifiedSec, scanVersion, generationSince)
+            runIndex(sinceModifiedSec, scanVersion, generationSince, sourceApps)
         }
     }
 
@@ -124,6 +133,7 @@ class MediaIndexer(private val context: Context) {
             startIndex(
                 sinceModifiedSec = resumeCursor.get(),
                 scanVersion = 1, // caller should pass current scan version
+                sourceApps = currentSourceApps,
             )
         }
     }
@@ -151,116 +161,195 @@ class MediaIndexer(private val context: Context) {
         sinceModifiedSec: Long,
         scanVersion: Int,
         generationSince: Long,
+        sourceApps: List<String>,
     ) {
         var itemsProcessed = 0
         var bytesProcessed = 0L
-        var itemsTotal = 0
+        val seenIds = mutableSetOf<String>()
+        val batch = mutableListOf<Map<String, Any?>>()
 
         try {
-            // Query all three content types and interleave results.
-            val uris = buildList {
-                add(Triple(
-                    getMediaUri(MediaStore.Files.getContentUri("external")),
-                    "image",
-                    null,
-                ))
-            }
-
-            val contentUri = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                MediaStore.Files.getContentUri(MediaStore.VOLUME_EXTERNAL)
-            } else {
-                @Suppress("DEPRECATION")
-                MediaStore.Files.getContentUri("external")
+            // Target all relevant media tables + generic files table for maximum compatibility across Android versions
+            val queryTargets = buildList {
+                add(MediaStore.Images.Media.EXTERNAL_CONTENT_URI)
+                add(MediaStore.Video.Media.EXTERNAL_CONTENT_URI)
+                add(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI)
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                    add(MediaStore.Files.getContentUri(MediaStore.VOLUME_EXTERNAL))
+                } else {
+                    @Suppress("DEPRECATION")
+                    add(MediaStore.Files.getContentUri("external"))
+                }
             }
 
             val projection = buildProjection()
-            val selection = buildSelection(sinceModifiedSec, generationSince)
-            val selectionArgs = buildSelectionArgs(sinceModifiedSec, generationSince)
-            val sortOrder = "${MediaStore.Files.FileColumns.DATE_MODIFIED} ASC"
+            val sortOrder = "${MediaStore.MediaColumns.DATE_MODIFIED} ASC"
 
-            val cursor = context.contentResolver.query(
-                contentUri,
-                projection,
-                selection,
-                selectionArgs,
-                sortOrder,
-            ) ?: run {
-                sendEvent(mapOf(
-                    "status" to ScanStatus.ERROR,
-                    "error" to "ContentResolver returned null cursor",
-                ))
-                return
+            for (targetUri in queryTargets) {
+                if (isCancelled.get()) break
+
+                val selection = buildSelection(targetUri, sinceModifiedSec, generationSince)
+                val selectionArgs = buildSelectionArgs(sinceModifiedSec, generationSince)
+
+                val cursor = try {
+                    context.contentResolver.query(
+                        targetUri,
+                        projection,
+                        selection,
+                        selectionArgs,
+                        sortOrder,
+                    )
+                } catch (_: Exception) {
+                    null
+                } ?: continue
+
+                cursor.use { c ->
+                    while (c.moveToNext()) {
+                        while (isPaused.get() && !isCancelled.get()) {
+                            sendEvent(mapOf(
+                                "status"         to ScanStatus.PAUSED,
+                                "itemsProcessed" to itemsProcessed,
+                                "itemsTotal"     to itemsProcessed,
+                                "bytesProcessed" to bytesProcessed,
+                            ))
+                            delay(500)
+                        }
+                        if (isCancelled.get()) {
+                            sendEvent(mapOf("status" to ScanStatus.CANCELLED))
+                            return
+                        }
+
+                        val row = tryReadRow(c, targetUri, scanVersion) ?: continue
+
+                        // Prevent duplicates across multiple content queries
+                        val mediaStoreId = row["mediaStoreId"] as? String ?: ""
+                        val rowKey = if (mediaStoreId.isNotEmpty()) mediaStoreId else (row["contentUri"] as? String ?: "")
+                        if (seenIds.contains(rowKey)) continue
+                        seenIds.add(rowKey)
+
+                        val sourceApp = row["sourceApp"] as? String ?: SOURCE_WHATSAPP
+                        if (sourceApps.isNotEmpty() && !sourceApps.contains(sourceApp)) {
+                            continue
+                        }
+
+                        val sizeBytes = (row["sizeBytes"] as? Long) ?: 0L
+                        batch.add(row)
+                        bytesProcessed += sizeBytes
+                        itemsProcessed++
+
+                        resumeCursor.set((row["dateModifiedSec"] as? Long) ?: 0L)
+
+                        if (batch.size >= BATCH_SIZE) {
+                            sendEvent(mapOf(
+                                "status"         to ScanStatus.PROGRESS,
+                                "items"          to batch.toList(),
+                                "itemsProcessed" to itemsProcessed,
+                                "itemsTotal"     to itemsProcessed,
+                                "bytesProcessed" to bytesProcessed,
+                                "scanVersion"    to scanVersion,
+                            ))
+                            batch.clear()
+                        }
+                    }
+                }
             }
 
-            cursor.use { c ->
-                itemsTotal = c.count
-                sendProgress(itemsProcessed, itemsTotal, bytesProcessed, scanVersion)
+            // Flush remaining MediaStore items
+            if (batch.isNotEmpty()) {
+                sendEvent(mapOf(
+                    "status"         to ScanStatus.PROGRESS,
+                    "items"          to batch.toList(),
+                    "itemsProcessed" to itemsProcessed,
+                    "itemsTotal"     to itemsProcessed,
+                    "bytesProcessed" to bytesProcessed,
+                    "scanVersion"    to scanVersion,
+                ))
+                batch.clear()
+            }
 
-                val batch = mutableListOf<Map<String, Any?>>()
+            // Fallback: If MediaStore query yielded 0 items, scan direct file system for WhatsApp folders
+            if (itemsProcessed == 0) {
+                val externalDir = android.os.Environment.getExternalStorageDirectory()
+                val candidateDirs = listOf(
+                    Pair(java.io.File(externalDir, "Android/media/com.whatsapp/WhatsApp/Media"), SOURCE_WHATSAPP),
+                    Pair(java.io.File(externalDir, "Android/media/com.whatsapp.w4b/WhatsApp Business/Media"), SOURCE_WHATSAPP_BUSINESS),
+                    Pair(java.io.File(externalDir, "WhatsApp/Media"), SOURCE_WHATSAPP),
+                    Pair(java.io.File(externalDir, "WhatsApp Business/Media"), SOURCE_WHATSAPP_BUSINESS),
+                )
 
-                while (c.moveToNext()) {
-                    // Honour pause/cancel between rows (REQ-IDX-04).
-                    while (isPaused.get() && !isCancelled.get()) {
-                        sendEvent(mapOf(
-                            "status"         to ScanStatus.PAUSED,
-                            "itemsProcessed" to itemsProcessed,
-                            "itemsTotal"     to itemsTotal,
-                            "bytesProcessed" to bytesProcessed,
-                        ))
-                        delay(500)
-                    }
-                    if (isCancelled.get()) {
-                        sendEvent(mapOf("status" to ScanStatus.CANCELLED))
-                        return
-                    }
+                for ((mediaRoot, defaultSource) in candidateDirs) {
+                    if (!mediaRoot.exists() || !mediaRoot.canRead()) continue
+                    val subdirs = mediaRoot.listFiles() ?: continue
+                    for (folder in subdirs) {
+                        if (!folder.isDirectory) continue
+                        val folderName = folder.name
+                        val files = folder.listFiles() ?: continue
+                        for (file in files) {
+                            if (file.isDirectory || file.name.startsWith(".")) continue
+                            if (sourceApps.isNotEmpty() && !sourceApps.contains(defaultSource)) continue
 
-                    // REQ-IDX-07: skip rows we can't read without aborting.
-                    val row = tryReadRow(c, scanVersion) ?: continue
+                            val filePath = file.absolutePath
+                            if (seenIds.contains(filePath)) continue
+                            seenIds.add(filePath)
 
-                    // Only emit rows that belong to a known WhatsApp bucket.
-                    val bucketName = row["bucketName"] as? String ?: ""
-                    if (!isWhatsAppBucket(bucketName, row["relativePath"] as? String)) {
-                        continue
-                    }
+                            val ext = file.extension.lowercase()
+                            val mime = android.webkit.MimeTypeMap.getSingleton().getMimeTypeFromExtension(ext) ?: "application/octet-stream"
+                            val size = file.length()
+                            val modSec = file.lastModified() / 1000
 
-                    val sizeBytes = (row["sizeBytes"] as? Long) ?: 0L
-                    batch.add(row)
-                    bytesProcessed += sizeBytes
-                    itemsProcessed++
+                            val row = mapOf(
+                                "contentUri"      to android.net.Uri.fromFile(file).toString(),
+                                "mediaStoreId"    to (file.hashCode().toLong() and 0xFFFFFFFFL).toString(),
+                                "displayName"     to file.name,
+                                "mimeType"        to mime,
+                                "sizeBytes"       to size,
+                                "dateAddedSec"    to modSec,
+                                "dateModifiedSec" to modSec,
+                                "bucketName"      to folderName,
+                                "relativePath"    to "Android/media/" + (if (defaultSource == SOURCE_WHATSAPP_BUSINESS) "com.whatsapp.w4b/" else "com.whatsapp/") + folderName + "/",
+                                "width"           to 0,
+                                "height"          to 0,
+                                "durationMs"      to 0L,
+                                "sourceApp"       to defaultSource,
+                                "scanVersion"     to scanVersion,
+                            )
 
-                    // Record cursor for resume (REQ-IDX-04).
-                    resumeCursor.set((row["dateModifiedSec"] as? Long) ?: 0L)
+                            batch.add(row)
+                            bytesProcessed += size
+                            itemsProcessed++
 
-                    if (batch.size >= BATCH_SIZE) {
-                        sendEvent(mapOf(
-                            "status"         to ScanStatus.PROGRESS,
-                            "items"          to batch.toList(),
-                            "itemsProcessed" to itemsProcessed,
-                            "itemsTotal"     to itemsTotal,
-                            "bytesProcessed" to bytesProcessed,
-                            "scanVersion"    to scanVersion,
-                        ))
-                        batch.clear()
+                            if (batch.size >= BATCH_SIZE) {
+                                sendEvent(mapOf(
+                                    "status"         to ScanStatus.PROGRESS,
+                                    "items"          to batch.toList(),
+                                    "itemsProcessed" to itemsProcessed,
+                                    "itemsTotal"     to itemsProcessed,
+                                    "bytesProcessed" to bytesProcessed,
+                                    "scanVersion"    to scanVersion,
+                                ))
+                                batch.clear()
+                            }
+                        }
                     }
                 }
 
-                // Flush remaining items.
                 if (batch.isNotEmpty()) {
                     sendEvent(mapOf(
                         "status"         to ScanStatus.PROGRESS,
                         "items"          to batch.toList(),
                         "itemsProcessed" to itemsProcessed,
-                        "itemsTotal"     to itemsTotal,
+                        "itemsTotal"     to itemsProcessed,
                         "bytesProcessed" to bytesProcessed,
                         "scanVersion"    to scanVersion,
                     ))
+                    batch.clear()
                 }
             }
 
             sendEvent(mapOf(
                 "status"         to ScanStatus.DONE,
                 "itemsProcessed" to itemsProcessed,
-                "itemsTotal"     to itemsTotal,
+                "itemsTotal"     to itemsProcessed,
                 "bytesProcessed" to bytesProcessed,
                 "scanVersion"    to scanVersion,
                 "generation"     to currentGeneration(),
@@ -281,39 +370,42 @@ class MediaIndexer(private val context: Context) {
     // ------------------------------------------------------------------
 
     private fun buildProjection(): Array<String> = buildList {
-        add(MediaStore.Files.FileColumns._ID)
-        add(MediaStore.Files.FileColumns.DISPLAY_NAME)
-        add(MediaStore.Files.FileColumns.MIME_TYPE)
-        add(MediaStore.Files.FileColumns.SIZE)
-        add(MediaStore.Files.FileColumns.DATE_ADDED)
-        add(MediaStore.Files.FileColumns.DATE_MODIFIED)
-        add(MediaStore.Files.FileColumns.BUCKET_DISPLAY_NAME)
-        add(MediaStore.Files.FileColumns.WIDTH)
-        add(MediaStore.Files.FileColumns.HEIGHT)
-        add(MediaStore.Files.FileColumns.DURATION)
+        add(MediaStore.MediaColumns._ID)
+        add(MediaStore.MediaColumns.DISPLAY_NAME)
+        add(MediaStore.MediaColumns.MIME_TYPE)
+        add(MediaStore.MediaColumns.SIZE)
+        add(MediaStore.MediaColumns.DATE_ADDED)
+        add(MediaStore.MediaColumns.DATE_MODIFIED)
+        @Suppress("DEPRECATION")
+        add(MediaStore.MediaColumns.DATA)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            add(MediaStore.Files.FileColumns.RELATIVE_PATH)
+            add(MediaStore.MediaColumns.BUCKET_DISPLAY_NAME)
+            add(MediaStore.MediaColumns.WIDTH)
+            add(MediaStore.MediaColumns.HEIGHT)
+            add(MediaStore.MediaColumns.DURATION)
+            add(MediaStore.MediaColumns.RELATIVE_PATH)
         }
     }.toTypedArray()
 
-    private fun buildSelection(sinceModifiedSec: Long, generationSince: Long): String? {
+    private fun buildSelection(uri: android.net.Uri, sinceModifiedSec: Long, generationSince: Long): String? {
         val clauses = mutableListOf<String>()
 
-        // Media files (images, video, audio) and documents (application/%, text/%)
-        clauses.add(
-            "(${MediaStore.Files.FileColumns.MIME_TYPE} LIKE 'image/%' " +
-            "OR ${MediaStore.Files.FileColumns.MIME_TYPE} LIKE 'video/%' " +
-            "OR ${MediaStore.Files.FileColumns.MIME_TYPE} LIKE 'audio/%' " +
-            "OR ${MediaStore.Files.FileColumns.MIME_TYPE} LIKE 'application/%' " +
-            "OR ${MediaStore.Files.FileColumns.MIME_TYPE} LIKE 'text/%')"
-        )
+        if (uri.toString().contains("file", ignoreCase = true)) {
+            clauses.add(
+                "(${MediaStore.MediaColumns.MIME_TYPE} LIKE 'image/%' " +
+                "OR ${MediaStore.MediaColumns.MIME_TYPE} LIKE 'video/%' " +
+                "OR ${MediaStore.MediaColumns.MIME_TYPE} LIKE 'audio/%' " +
+                "OR ${MediaStore.MediaColumns.MIME_TYPE} LIKE 'application/%' " +
+                "OR ${MediaStore.MediaColumns.MIME_TYPE} LIKE 'text/%')"
+            )
+        }
 
         if (sinceModifiedSec > 0L) {
-            clauses.add("${MediaStore.Files.FileColumns.DATE_MODIFIED} >= ?")
+            clauses.add("${MediaStore.MediaColumns.DATE_MODIFIED} >= ?")
         }
 
         if (generationSince > 0L && Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            clauses.add("${MediaStore.Files.FileColumns.GENERATION_MODIFIED} > ?")
+            clauses.add("${MediaStore.MediaColumns.GENERATION_MODIFIED} > ?")
         }
 
         return if (clauses.isEmpty()) null else clauses.joinToString(" AND ")
@@ -329,34 +421,35 @@ class MediaIndexer(private val context: Context) {
     }
 
     /**
-     * Read one row safely. Returns null if any required field is missing
-     * or throws (REQ-IDX-07: file disappearing mid-scan must not abort the batch).
+     * Read one row safely using getColumnIndex (never throws IllegalArgumentException).
      */
-    private fun tryReadRow(cursor: Cursor, scanVersion: Int): Map<String, Any?>? {
+    private fun tryReadRow(cursor: Cursor, baseUri: android.net.Uri, scanVersion: Int): Map<String, Any?>? {
         return try {
-            val mediaStoreId = cursor.getLong(cursor.getColumnIndexOrThrow(MediaStore.Files.FileColumns._ID))
-            val contentUri = ContentUris.withAppendedId(
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q)
-                    MediaStore.Files.getContentUri(MediaStore.VOLUME_EXTERNAL)
-                else
-                    @Suppress("DEPRECATION") MediaStore.Files.getContentUri("external"),
-                mediaStoreId,
-            ).toString()
+            val idIndex = cursor.getColumnIndex(MediaStore.MediaColumns._ID)
+            if (idIndex < 0) return null
+            val mediaStoreId = cursor.getLong(idIndex)
+            val contentUri = ContentUris.withAppendedId(baseUri, mediaStoreId).toString()
 
-            val displayName = cursor.getString(cursor.getColumnIndexOrThrow(MediaStore.Files.FileColumns.DISPLAY_NAME)) ?: ""
-            val mimeType    = cursor.getString(cursor.getColumnIndexOrThrow(MediaStore.Files.FileColumns.MIME_TYPE)) ?: ""
-            val sizeBytes   = cursor.getLong(cursor.getColumnIndexOrThrow(MediaStore.Files.FileColumns.SIZE))
-            val dateAdded   = cursor.getLong(cursor.getColumnIndexOrThrow(MediaStore.Files.FileColumns.DATE_ADDED))
-            val dateModified = cursor.getLong(cursor.getColumnIndexOrThrow(MediaStore.Files.FileColumns.DATE_MODIFIED))
-            val bucketName  = cursor.getString(cursor.getColumnIndexOrThrow(MediaStore.Files.FileColumns.BUCKET_DISPLAY_NAME)) ?: ""
-            val width       = cursor.getInt(cursor.getColumnIndexOrThrow(MediaStore.Files.FileColumns.WIDTH))
-            val height      = cursor.getInt(cursor.getColumnIndexOrThrow(MediaStore.Files.FileColumns.HEIGHT))
-            val duration    = cursor.getLong(cursor.getColumnIndexOrThrow(MediaStore.Files.FileColumns.DURATION))
+            val displayName = cursor.getStringOrEmpty(MediaStore.MediaColumns.DISPLAY_NAME)
+            val mimeType    = cursor.getStringOrEmpty(MediaStore.MediaColumns.MIME_TYPE)
+            val sizeBytes   = cursor.getLongOrZero(MediaStore.MediaColumns.SIZE)
+            val dateAdded   = cursor.getLongOrZero(MediaStore.MediaColumns.DATE_ADDED)
+            val dateModified = cursor.getLongOrZero(MediaStore.MediaColumns.DATE_MODIFIED)
+            val bucketName  = cursor.getStringOrEmpty(MediaStore.MediaColumns.BUCKET_DISPLAY_NAME)
+            val width       = cursor.getIntOrZero(MediaStore.MediaColumns.WIDTH)
+            val height      = cursor.getIntOrZero(MediaStore.MediaColumns.HEIGHT)
+            val duration    = cursor.getLongOrZero(MediaStore.MediaColumns.DURATION)
             val relativePath = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                cursor.getString(cursor.getColumnIndexOrThrow(MediaStore.Files.FileColumns.RELATIVE_PATH)) ?: ""
+                cursor.getStringOrEmpty(MediaStore.MediaColumns.RELATIVE_PATH)
             } else ""
+            @Suppress("DEPRECATION")
+            val dataPath = cursor.getStringOrEmpty(MediaStore.MediaColumns.DATA)
 
-            val sourceApp = resolveSourceApp(bucketName, relativePath)
+            if (!isWhatsAppBucket(bucketName, relativePath, dataPath)) {
+                return null
+            }
+
+            val sourceApp = resolveSourceApp(bucketName, relativePath, dataPath)
 
             mapOf(
                 "contentUri"      to contentUri,
@@ -366,7 +459,7 @@ class MediaIndexer(private val context: Context) {
                 "sizeBytes"       to sizeBytes,
                 "dateAddedSec"    to dateAdded,
                 "dateModifiedSec" to dateModified,
-                "bucketName"      to bucketName,
+                "bucketName"      to (if (bucketName.isNotEmpty()) bucketName else "WhatsApp"),
                 "relativePath"    to relativePath,
                 "width"           to width,
                 "height"          to height,
@@ -375,22 +468,35 @@ class MediaIndexer(private val context: Context) {
                 "scanVersion"     to scanVersion,
             )
         } catch (e: Exception) {
-            // REQ-IDX-07: log and skip — don't abort the whole scan.
             null
         }
     }
 
-    private fun isWhatsAppBucket(bucketName: String, relativePath: String?): Boolean {
+    private fun isWhatsAppBucket(bucketName: String, relativePath: String?, dataPath: String?): Boolean {
         if (WHATSAPP_BUCKETS.any { it.equals(bucketName, ignoreCase = true) }) return true
-        // Legacy path check: /WhatsApp/ in relative_path or absolute path.
-        val path = relativePath ?: ""
-        return path.contains("WhatsApp", ignoreCase = true)
+        val combined = "$bucketName $relativePath $dataPath".lowercase()
+        return combined.contains("whatsapp") || combined.contains("com.whatsapp")
     }
 
-    private fun resolveSourceApp(bucketName: String, relativePath: String): String {
-        val combined = "$bucketName $relativePath".lowercase()
-        return if (combined.contains("business")) SOURCE_WHATSAPP_BUSINESS
+    private fun resolveSourceApp(bucketName: String, relativePath: String, dataPath: String): String {
+        val combined = "$bucketName $relativePath $dataPath".lowercase()
+        return if (combined.contains("business") || combined.contains("w4b")) SOURCE_WHATSAPP_BUSINESS
                else SOURCE_WHATSAPP
+    }
+
+    private fun Cursor.getIntOrZero(colName: String): Int {
+        val idx = getColumnIndex(colName)
+        return if (idx >= 0 && !isNull(idx)) getInt(idx) else 0
+    }
+
+    private fun Cursor.getLongOrZero(colName: String): Long {
+        val idx = getColumnIndex(colName)
+        return if (idx >= 0 && !isNull(idx)) getLong(idx) else 0L
+    }
+
+    private fun Cursor.getStringOrEmpty(colName: String): String {
+        val idx = getColumnIndex(colName)
+        return if (idx >= 0 && !isNull(idx)) getString(idx) ?: "" else ""
     }
 
     private fun getMediaUri(uri: android.net.Uri) = uri

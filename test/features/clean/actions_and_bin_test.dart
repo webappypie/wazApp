@@ -357,7 +357,9 @@ void main() {
   // ---------------------------------------------------------------------------
   group('REQ-BIN: Recycle Bin Screen', () {
     testWidgets('Groups items by Today, Yesterday, This Week, Older and shows retention notice', (tester) async {
-      final nowSec = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+      final now = DateTime.now();
+      final nowSec = now.millisecondsSinceEpoch ~/ 1000;
+      final yesterdaySec = DateTime(now.year, now.month, now.day - 1, 12).millisecondsSinceEpoch ~/ 1000;
       final fakeMedia = FakeMediaAccessService()..simulatedApiLevel = 33;
       fakeMedia.trashedItems = [
         MediaItem(
@@ -375,8 +377,8 @@ void main() {
           contentUri: 'content://media/t2',
           mimeType: 'image/jpeg',
           sizeBytes: 2 * 1024 * 1024,
-          dateAddedEpochSec: nowSec - 90000,
-          dateModifiedEpochSec: nowSec - 90000, // Yesterday
+          dateAddedEpochSec: yesterdaySec,
+          dateModifiedEpochSec: yesterdaySec, // Yesterday
           folderBucket: 'WhatsApp Images',
           source: MediaSource.whatsApp,
         ),

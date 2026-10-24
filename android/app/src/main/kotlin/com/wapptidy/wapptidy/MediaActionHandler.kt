@@ -386,6 +386,12 @@ class MediaActionHandler(
                         val mime = cursor.getString(mimeCol) ?: "application/octet-stream"
                         val dateModified = cursor.getLong(dateCol)
                         val bucket = cursor.getString(bucketCol) ?: "WhatsApp"
+                        val relativePath = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                            val relCol = cursor.getColumnIndex(MediaStore.MediaColumns.RELATIVE_PATH)
+                            if (relCol != -1) cursor.getString(relCol) ?: "" else ""
+                        } else ""
+                        val combined = "$bucket $relativePath".lowercase()
+                        val sourceApp = if (combined.contains("business") || combined.contains("w4b")) "com.whatsapp.w4b" else "com.whatsapp"
 
                         result.add(
                             mapOf(
@@ -395,7 +401,8 @@ class MediaActionHandler(
                                 "sizeBytes" to size,
                                 "mimeType" to mime,
                                 "dateModifiedSec" to dateModified,
-                                "bucketName" to bucket
+                                "bucketName" to bucket,
+                                "sourceApp" to sourceApp
                             )
                         )
                     }

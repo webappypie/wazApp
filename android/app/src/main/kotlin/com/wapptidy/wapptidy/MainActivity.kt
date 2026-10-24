@@ -69,8 +69,29 @@ class MainActivity : FlutterActivity() {
                         val sinceModifiedSec = (call.argument<Number>("sinceModifiedSec") ?: 0).toLong()
                         val scanVersion      = (call.argument<Number>("scanVersion") ?: 1).toInt()
                         val generationSince  = (call.argument<Number>("generationSince") ?: 0L).toLong()
-                        mediaIndexer.startIndex(sinceModifiedSec, scanVersion, generationSince)
+                        val sourceApps       = call.argument<List<String>>("sourceApps") ?: listOf("com.whatsapp", "com.whatsapp.w4b")
+                        mediaIndexer.startIndex(sinceModifiedSec, scanVersion, generationSince, sourceApps)
                         result.success(null)
+                    }
+                    "detectInstalledSources" -> {
+                        val pm = packageManager
+                        fun isInstalled(pkg: String): Boolean {
+                            return try {
+                                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+                                    pm.getPackageInfo(pkg, android.content.pm.PackageManager.PackageInfoFlags.of(0))
+                                } else {
+                                    @Suppress("DEPRECATION")
+                                    pm.getPackageInfo(pkg, 0)
+                                }
+                                true
+                            } catch (_: android.content.pm.PackageManager.NameNotFoundException) {
+                                false
+                            }
+                        }
+                        result.success(mapOf(
+                            "whatsapp" to isInstalled("com.whatsapp"),
+                            "whatsappBusiness" to isInstalled("com.whatsapp.w4b")
+                        ))
                     }
                     "pause" -> {
                         mediaIndexer.pause()

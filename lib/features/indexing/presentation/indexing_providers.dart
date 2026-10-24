@@ -59,10 +59,24 @@ final indexingServiceProvider = Provider<IndexingService>((ref) {
 
 /// Summary stats read from the DB. Refreshed on every scan completion.
 final indexStatsProvider = FutureProvider.autoDispose<IndexStats>((ref) async {
-  final repo  = ref.watch(indexingRepositoryProvider);
+  final db = ref.watch(appDatabaseProvider);
+  final repo = ref.watch(indexingRepositoryProvider);
   final count = await repo.indexedItemCount();
   final bytes = await repo.indexedTotalBytes();
-  return IndexStats(itemCount: count, totalBytes: bytes);
+
+  final waCount = await db.countAllItems(sourceApp: 'com.whatsapp');
+  final waBytes = await db.sumAllBytes(sourceApp: 'com.whatsapp');
+  final bizCount = await db.countAllItems(sourceApp: 'com.whatsapp.w4b');
+  final bizBytes = await db.sumAllBytes(sourceApp: 'com.whatsapp.w4b');
+
+  return IndexStats(
+    itemCount: count,
+    totalBytes: bytes,
+    whatsAppItemCount: waCount,
+    whatsAppTotalBytes: waBytes,
+    businessItemCount: bizCount,
+    businessTotalBytes: bizBytes,
+  );
 });
 
 // ---------------------------------------------------------------------------
@@ -70,11 +84,29 @@ final indexStatsProvider = FutureProvider.autoDispose<IndexStats>((ref) async {
 // ---------------------------------------------------------------------------
 
 class IndexStats {
-  const IndexStats({required this.itemCount, required this.totalBytes});
+  const IndexStats({
+    required this.itemCount,
+    required this.totalBytes,
+    this.whatsAppItemCount = 0,
+    this.whatsAppTotalBytes = 0,
+    this.businessItemCount = 0,
+    this.businessTotalBytes = 0,
+  });
+
   final int itemCount;
   final int totalBytes;
+  final int whatsAppItemCount;
+  final int whatsAppTotalBytes;
+  final int businessItemCount;
+  final int businessTotalBytes;
 
   String get formattedBytes => _formatBytes(totalBytes);
+  String get formattedWhatsAppBytes => _formatBytes(whatsAppTotalBytes);
+  String get formattedBusinessBytes => _formatBytes(businessTotalBytes);
+
+  bool get hasBusinessMedia => businessItemCount > 0;
+  bool get hasWhatsAppMedia => whatsAppItemCount > 0;
+  bool get hasBothSources => hasBusinessMedia && hasWhatsAppMedia;
 
   static String _formatBytes(int bytes) {
     if (bytes <= 0) return '0 B';

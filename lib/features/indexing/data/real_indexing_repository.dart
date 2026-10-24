@@ -31,6 +31,7 @@ class RealIndexingRepository implements IndexingRepository {
   Stream<ScanProgress> startFullIndex({
     int sinceModifiedSec = 0,
     int generationSince = 0,
+    List<String>? allowedSources,
   }) async* {
     // Read the current scan version from DB and bump it.
     final state = await _db.readScanState();
@@ -52,7 +53,10 @@ class RealIndexingRepository implements IndexingRepository {
       'sinceModifiedSec': sinceModifiedSec,
       'scanVersion':      _currentScanVersion,
       'generationSince':  generationSince,
+      if (allowedSources != null) 'sourceApps': allowedSources,
     });
+
+    String? currentSource;
 
     // Stream events from Kotlin EventChannel.
     await for (final rawEvent in _eventChannel.receiveBroadcastStream()) {
@@ -74,6 +78,11 @@ class RealIndexingRepository implements IndexingRepository {
       if (status == 'progress') {
         final rawItems = event['items'] as List<Object?>? ?? [];
         if (rawItems.isNotEmpty) {
+          final first = rawItems.first;
+          if (first is Map) {
+            final pkg = first['sourceApp'] as String?;
+            currentSource = pkg == 'com.whatsapp.w4b' ? 'WhatsApp Business' : 'WhatsApp';
+          }
           final companions = rawItems
               .whereType<Map<Object?, Object?>>()
               .map((m) => _toCompanion(RawMediaItem.fromMap(m, _currentScanVersion)))
@@ -91,6 +100,7 @@ class RealIndexingRepository implements IndexingRepository {
         bytesProcessed: bytesProcessed,
         scanVersion:    _currentScanVersion,
         generation:     (event['generation'] as num?)?.toInt() ?? 0,
+        currentSource:  currentSource,
         error:          event['error'] as String?,
       );
 
@@ -99,7 +109,7 @@ class RealIndexingRepository implements IndexingRepository {
       if (progress.isTerminal) {
         if (domainStatus == ScanStatus.done) {
           // Prune stale rows (files deleted since last scan — REQ-IDX-07).
-          await _db.deleteStaleItems(_currentScanVersion);
+          await _db.deleteStaleItems(_currentScanVersion, forSources: allowedSources);
 
           // Persist final generation for next incremental check.
           await _db.updateScanState(ScanStateTableCompanion(

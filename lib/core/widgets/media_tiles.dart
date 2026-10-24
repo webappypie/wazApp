@@ -6,6 +6,7 @@
 import 'package:flutter/material.dart';
 
 import '../design/tokens.dart';
+import 'source_badge.dart';
 
 // ---------------------------------------------------------------------------
 // MediaTile — grid item for image/video thumbnails
@@ -28,6 +29,7 @@ class MediaTile extends StatelessWidget {
     this.isProtected = false,
     this.isVideo = false,
     this.badgeLabel,
+    this.sourceApp,
     this.semanticLabel,
   });
 
@@ -40,6 +42,7 @@ class MediaTile extends StatelessWidget {
   final bool isProtected;
   final bool isVideo;
   final String? badgeLabel;
+  final String? sourceApp;
   final String? semanticLabel;
 
   @override
@@ -84,6 +87,14 @@ class MediaTile extends StatelessWidget {
                   top: AppSpacing.xs,
                   right: AppSpacing.xs,
                   child: _ProtectedBadge(scheme: scheme),
+                ),
+
+              // Source badge
+              if (sourceApp != null)
+                Positioned(
+                  bottom: AppSpacing.xs,
+                  right: AppSpacing.xs,
+                  child: SourceBadge(sourceApp: sourceApp!),
                 ),
 
               // Selection overlay
@@ -195,6 +206,7 @@ class MediaListRow extends StatelessWidget {
     required this.onLongPress,
     this.leading,
     this.trailing,
+    this.sourceApp,
     this.isProtected = false,
     this.semanticLabel,
   });
@@ -207,6 +219,7 @@ class MediaListRow extends StatelessWidget {
   final VoidCallback onLongPress;
   final Widget? leading;
   final Widget? trailing;
+  final String? sourceApp;
   final bool isProtected;
   final String? semanticLabel;
 
@@ -290,9 +303,18 @@ class MediaListRow extends StatelessWidget {
                   ],
                 ),
               ),
-              if (trailing != null) ...[
+              if (sourceApp != null || trailing != null) ...[
                 const SizedBox(width: AppSpacing.sm),
-                trailing!,
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (sourceApp != null) ...[
+                      SourceBadge(sourceApp: sourceApp!),
+                      if (trailing != null) const SizedBox(width: 4),
+                    ],
+                    if (trailing != null) trailing!,
+                  ],
+                ),
               ],
             ],
           ),

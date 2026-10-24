@@ -18,6 +18,7 @@ import '../../../core/widgets/action_widgets.dart';
 import '../../../core/widgets/app_scaffold.dart';
 import '../../../core/widgets/buttons.dart';
 import '../../../core/widgets/media_tiles.dart';
+import '../../../core/widgets/source_filter_bar.dart';
 import '../../../core/widgets/state_widgets.dart';
 import '../../clean/domain/category_models.dart';
 
@@ -152,10 +153,16 @@ class _BinScreenState extends ConsumerState<BinScreen> {
     final selected = _selectedItems;
     if (selected.isEmpty) return;
 
+    final waCount = selected.where((it) => !it.sourceApp.contains('w4b')).length;
+    final bizCount = selected.where((it) => it.sourceApp.contains('w4b')).length;
+    final breakdown = (waCount > 0 && bizCount > 0)
+        ? '\n\nIncludes: $waCount WhatsApp files and $bizCount Business files.'
+        : '';
+
     final confirmed = await ConfirmationSheet.show(
       context,
       title: 'Permanently delete ${selected.length} items?',
-      body: '⚠️ These files will be permanently erased from your device. This action cannot be undone.',
+      body: '⚠️ These files will be permanently erased from your device. This action cannot be undone.$breakdown',
       confirmLabel: 'Delete Permanently',
       isDestructive: true,
     );
@@ -234,12 +241,21 @@ class _BinScreenState extends ConsumerState<BinScreen> {
       appBar: AppBar(
         title: const Text('Recycle Bin'),
         actions: [
-          if (_trashedItems.isNotEmpty)
+          if (_trashedItems.isNotEmpty) ...[
+            TextButton(
+              onPressed: () {
+                _selectedIds.clear();
+                _selectedIds.addAll(_trashedItems.map((e) => e.id));
+                _handlePermanentDelete();
+              },
+              child: const Text('Empty Bin', style: TextStyle(color: kColorDestructive)),
+            ),
             IconButton(
               icon: Icon(allSelected ? Icons.deselect_rounded : Icons.select_all_rounded),
               tooltip: allSelected ? 'Deselect all' : 'Select all',
               onPressed: _toggleSelectAll,
             ),
+          ],
         ],
       ),
       bottomNavigationBar: count > 0
@@ -346,52 +362,74 @@ class _BinScreenState extends ConsumerState<BinScreen> {
       );
     }
 
-    final grouped = _groupItemsByDate(_trashedItems);
+    final sourceFilter = ref.watch(activeSourceFilterProvider);
+    final filteredTrashed = _trashedItems.where((it) {
+      if (sourceFilter == MediaSourceFilter.whatsApp && it.sourceApp.contains('w4b')) {
+        return false;
+      }
+      if (sourceFilter == MediaSourceFilter.whatsAppBusiness && !it.sourceApp.contains('w4b')) {
+        return false;
+      }
+      return true;
+    }).toList();
+
+    final grouped = _groupItemsByDate(filteredTrashed);
 
     return Column(
       children: [
         _buildRetentionBanner(scheme),
+        const Padding(
+          padding: EdgeInsets.symmetric(horizontal: AppSpacing.pagePadding),
+          child: SourceFilterBar(),
+        ),
         Expanded(
-          child: ListView.builder(
-            padding: const EdgeInsets.all(AppSpacing.pagePadding),
-            itemCount: grouped.entries.length,
-            itemBuilder: (context, groupIdx) {
-              final entry = grouped.entries.elementAt(groupIdx);
-              final groupName = entry.key;
-              final items = entry.value;
+          child: filteredTrashed.isEmpty
+              ? const EmptyState(
+                  title: 'No items matching filter',
+                  body: 'Try selecting a different media source.',
+                  icon: Icons.filter_list_off_rounded,
+                )
+              : ListView.builder(
+                  padding: const EdgeInsets.all(AppSpacing.pagePadding),
+                  itemCount: grouped.entries.length,
+                  itemBuilder: (context, groupIdx) {
+                    final entry = grouped.entries.elementAt(groupIdx);
+                    final groupName = entry.key;
+                    final items = entry.value;
 
-              return Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
-                    child: Text(
-                      groupName,
-                      style: AppTextStyles.titleMedium.copyWith(
-                        fontWeight: FontWeight.bold,
-                        color: scheme.primary,
-                      ),
-                    ),
-                  ),
-                  ...items.map((item) {
-                    final isSelected = _selectedIds.contains(item.id);
-                    return Padding(
-                      padding: const EdgeInsets.only(bottom: AppSpacing.xs),
-                      child: MediaListRow(
-                        thumbnailProvider: item.thumbnailProvider ?? CategoryItem.defaultPlaceholder,
-                        title: item.displayName,
-                        subtitle: '${item.bucketName} • ${formatBytes(item.sizeBytes)}',
-                        isSelected: isSelected,
-                        onTap: () => _toggleSelection(item.id),
-                        onLongPress: () => _toggleSelection(item.id),
-                      ),
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
+                          child: Text(
+                            groupName,
+                            style: AppTextStyles.titleMedium.copyWith(
+                              fontWeight: FontWeight.bold,
+                              color: scheme.primary,
+                            ),
+                          ),
+                        ),
+                        ...items.map((item) {
+                          final isSelected = _selectedIds.contains(item.id);
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: AppSpacing.xs),
+                            child: MediaListRow(
+                              thumbnailProvider: item.thumbnailProvider ?? CategoryItem.defaultPlaceholder,
+                              title: item.displayName,
+                              subtitle: '${item.bucketName} • ${formatBytes(item.sizeBytes)}',
+                              sourceApp: item.sourceApp,
+                              isSelected: isSelected,
+                              onTap: () => _toggleSelection(item.id),
+                              onLongPress: () => _toggleSelection(item.id),
+                            ),
+                          );
+                        }),
+                        const SizedBox(height: AppSpacing.sm),
+                      ],
                     );
-                  }),
-                  const SizedBox(height: AppSpacing.sm),
-                ],
-              );
-            },
-          ),
+                  },
+                ),
         ),
       ],
     );

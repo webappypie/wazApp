@@ -303,6 +303,48 @@ class RecentActivityEntry {
 }
 
 // ---------------------------------------------------------------------------
+// Source breakdown model (WhatsApp vs WhatsApp Business)
+// ---------------------------------------------------------------------------
+
+class SourceBreakdown {
+  const SourceBreakdown({
+    required this.whatsAppBytes,
+    required this.whatsAppCount,
+    required this.whatsAppPotentialCleanupBytes,
+    required this.businessBytes,
+    required this.businessCount,
+    required this.businessPotentialCleanupBytes,
+  });
+
+  final int whatsAppBytes;
+  final int whatsAppCount;
+  final int whatsAppPotentialCleanupBytes;
+
+  final int businessBytes;
+  final int businessCount;
+  final int businessPotentialCleanupBytes;
+
+  int get totalBytes => whatsAppBytes + businessBytes;
+  int get totalCount => whatsAppCount + businessCount;
+  int get totalPotentialCleanupBytes =>
+      whatsAppPotentialCleanupBytes + businessPotentialCleanupBytes;
+
+  double get whatsAppPercent =>
+      totalBytes > 0 ? (whatsAppBytes / totalBytes) * 100 : 0.0;
+  double get businessPercent =>
+      totalBytes > 0 ? (businessBytes / totalBytes) * 100 : 0.0;
+
+  String get formattedWhatsAppBytes => _formatBytes(whatsAppBytes);
+  String get formattedBusinessBytes => _formatBytes(businessBytes);
+  String get formattedWhatsAppCleanup => _formatBytes(whatsAppPotentialCleanupBytes);
+  String get formattedBusinessCleanup => _formatBytes(businessPotentialCleanupBytes);
+  String get formattedTotalCleanup => _formatBytes(totalPotentialCleanupBytes);
+
+  bool get hasBothSources => whatsAppBytes > 0 && businessBytes > 0;
+  bool get hasBusinessMedia => businessBytes > 0 || businessCount > 0;
+}
+
+// ---------------------------------------------------------------------------
 // Home dashboard summary — combines all sections
 // ---------------------------------------------------------------------------
 
@@ -315,6 +357,7 @@ class HomeDashboard {
     required this.monthOverMonthDelta,
     required this.opportunities,
     required this.recentActivity,
+    this.sourceBreakdown,
   });
 
   final int totalIndexedBytes;
@@ -327,10 +370,33 @@ class HomeDashboard {
 
   final List<OpportunityCard> opportunities;
   final List<RecentActivityEntry> recentActivity;
+  final SourceBreakdown? sourceBreakdown;
 
   String get formattedTotal => _formatBytes(totalIndexedBytes);
   String get formattedRecoverable =>
       _formatBytes(recoverable.totalRecoverableBytes);
+
+  HomeDashboard copyWith({
+    int? totalIndexedBytes,
+    int? totalItemCount,
+    HealthScoreResult? healthScore,
+    RecoverableSpaceResult? recoverable,
+    int? monthOverMonthDelta,
+    List<OpportunityCard>? opportunities,
+    List<RecentActivityEntry>? recentActivity,
+    SourceBreakdown? sourceBreakdown,
+  }) {
+    return HomeDashboard(
+      totalIndexedBytes: totalIndexedBytes ?? this.totalIndexedBytes,
+      totalItemCount: totalItemCount ?? this.totalItemCount,
+      healthScore: healthScore ?? this.healthScore,
+      recoverable: recoverable ?? this.recoverable,
+      monthOverMonthDelta: monthOverMonthDelta ?? this.monthOverMonthDelta,
+      opportunities: opportunities ?? this.opportunities,
+      recentActivity: recentActivity ?? this.recentActivity,
+      sourceBreakdown: sourceBreakdown ?? this.sourceBreakdown,
+    );
+  }
 
   static const empty = HomeDashboard(
     totalIndexedBytes: 0,
@@ -340,6 +406,7 @@ class HomeDashboard {
     monthOverMonthDelta: null,
     opportunities: [],
     recentActivity: [],
+    sourceBreakdown: null,
   );
 }
 

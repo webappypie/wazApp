@@ -48,6 +48,7 @@ class FakeIndexingRepository implements IndexingRepository {
   Stream<ScanProgress> startFullIndex({
     int sinceModifiedSec = 0,
     int generationSince = 0,
+    List<String>? allowedSources,
   }) async* {
     for (final event in scanEvents) {
       if (eventDelay != Duration.zero) await Future<void>.delayed(eventDelay);

@@ -66,6 +66,18 @@ class AppDatabase extends _$AppDatabase {
           await customStatement(
             'CREATE INDEX IF NOT EXISTS idx_storage_snapshots_date ON storage_snapshots(date_epoch_day)',
           );
+          try {
+            await customStatement('ALTER TABLE storage_snapshots ADD COLUMN whatsapp_bytes INTEGER NOT NULL DEFAULT 0');
+          } catch (_) {}
+          try {
+            await customStatement('ALTER TABLE storage_snapshots ADD COLUMN whatsapp_business_bytes INTEGER NOT NULL DEFAULT 0');
+          } catch (_) {}
+          try {
+            await customStatement("UPDATE media_items SET source_app = 'com.whatsapp' WHERE source_app IS NULL OR source_app = ''");
+          } catch (_) {}
+          try {
+            await customStatement('CREATE INDEX IF NOT EXISTS idx_media_items_source_app ON media_items(source_app)');
+          } catch (_) {}
         },
       );
 
@@ -104,25 +116,54 @@ class AppDatabase extends _$AppDatabase {
   }
 
   /// Delete items whose scanVersion < [currentVersion].
-  /// This removes rows for files that no longer exist on disk (REQ-IDX-07).
-  Future<int> deleteStaleItems(int currentVersion) {
-    return (delete(mediaItems)
-          ..where((t) => t.scanVersion.isSmallerThanValue(currentVersion)))
-        .go();
+  /// If [forSources] is provided, only deletes stale items belonging to those sources.
+  Future<int> deleteStaleItems(int currentVersion, {List<String>? forSources}) {
+    final query = delete(mediaItems)
+      ..where((t) => t.scanVersion.isSmallerThanValue(currentVersion));
+    if (forSources != null && forSources.isNotEmpty) {
+      query.where((t) => t.sourceApp.isIn(forSources));
+    }
+    return query.go();
   }
 
-  /// Count of all indexed items.
-  Future<int> countAllItems() async {
+  /// Count of indexed items, optionally filtered by sourceApp.
+  Future<int> countAllItems({String? sourceApp}) async {
     final count = mediaItems.id.count();
-    final result = await (selectOnly(mediaItems)..addColumns([count])).getSingle();
+    final query = selectOnly(mediaItems)..addColumns([count]);
+    if (sourceApp != null) {
+      if (sourceApp == 'com.whatsapp') {
+        query.where(mediaItems.sourceApp.equals('com.whatsapp') | mediaItems.sourceApp.equals('legacy'));
+      } else {
+        query.where(mediaItems.sourceApp.equals(sourceApp));
+      }
+    }
+    final result = await query.getSingle();
     return result.read(count) ?? 0;
   }
 
-  /// Sum of sizeBytes across all indexed items.
-  Future<int> sumAllBytes() async {
+  /// Sum of sizeBytes across indexed items, optionally filtered by sourceApp.
+  Future<int> sumAllBytes({String? sourceApp}) async {
     final sum = mediaItems.sizeBytes.sum();
-    final result = await (selectOnly(mediaItems)..addColumns([sum])).getSingle();
+    final query = selectOnly(mediaItems)..addColumns([sum]);
+    if (sourceApp != null) {
+      if (sourceApp == 'com.whatsapp') {
+        query.where(mediaItems.sourceApp.equals('com.whatsapp') | mediaItems.sourceApp.equals('legacy'));
+      } else {
+        query.where(mediaItems.sourceApp.equals(sourceApp));
+      }
+    }
+    final result = await query.getSingle();
     return result.read(sum) ?? 0;
+  }
+
+  /// Delete items belonging to a specific source app (e.g. when disabled and cleared).
+  Future<int> deleteItemsBySource(String sourceApp) {
+    if (sourceApp == 'com.whatsapp') {
+      return (delete(mediaItems)
+            ..where((t) => t.sourceApp.equals('com.whatsapp') | t.sourceApp.equals('legacy')))
+          .go();
+    }
+    return (delete(mediaItems)..where((t) => t.sourceApp.equals(sourceApp))).go();
   }
 
   /// Clear all indexed media and reset scan state (REQ-SET-06).

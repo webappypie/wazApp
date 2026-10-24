@@ -42,8 +42,9 @@ class PartialAccessBanner extends ConsumerWidget {
 
     return permState.when(
       data: (state) {
-        if (state != MediaPermissionState.limited) return const SizedBox.shrink();
-        return _BannerContent();
+        if (state == MediaPermissionState.granted) return const SizedBox.shrink();
+        if (state == MediaPermissionState.limited) return _BannerContent();
+        return _DeniedBannerContent(isPermanent: state == MediaPermissionState.permanentlyDenied || state == MediaPermissionState.restricted);
       },
       loading: () => const SizedBox.shrink(),
       error: (_, _) => const SizedBox.shrink(),
@@ -86,6 +87,69 @@ class _BannerContent extends ConsumerWidget {
                 style: AppTextStyles.labelSmall.copyWith(
                   color: kColorWarning,
                   decoration: TextDecoration.underline,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _DeniedBannerContent extends ConsumerWidget {
+  const _DeniedBannerContent({required this.isPermanent});
+  final bool isPermanent;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final scheme = Theme.of(context).colorScheme;
+    return Container(
+      width: double.infinity,
+      color: scheme.errorContainer,
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.pagePadding,
+        vertical: AppSpacing.sm,
+      ),
+      child: Semantics(
+        liveRegion: true,
+        label: 'Media permissions required to scan WhatsApp files. Tap to grant access.',
+        child: Row(
+          children: [
+            Icon(Icons.folder_off_outlined, size: 18, color: scheme.onErrorContainer),
+            const SizedBox(width: AppSpacing.sm),
+            Expanded(
+              child: Text(
+                'Media access is required to find WhatsApp media.',
+                style: AppTextStyles.bodySmall.copyWith(
+                  color: scheme.onErrorContainer,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+            const SizedBox(width: AppSpacing.sm),
+            GestureDetector(
+              onTap: () async {
+                final svc = ref.read(mediaAccessServiceProvider);
+                if (isPermanent) {
+                  await svc.openAppSettings();
+                } else {
+                  await svc.requestPermission();
+                }
+                ref.invalidate(mediaPermissionStateProvider);
+              },
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: scheme.error,
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Text(
+                  isPermanent ? 'Settings' : 'Grant',
+                  style: AppTextStyles.labelSmall.copyWith(
+                    color: scheme.onError,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ),
             ),
