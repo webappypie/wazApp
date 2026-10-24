@@ -55,6 +55,7 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen> {
     final index = _index.clamp(0, items.length - 1);
     final current = items[index];
     final canExport = ref.watch(statusAccessServiceProvider).isSupported;
+    final canEditVideo = ref.watch(videoEncoderProvider).isSupported;
 
     return Scaffold(
       backgroundColor: Colors.black,
@@ -82,6 +83,8 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen> {
                   await exportFlow(context, ref, [current]);
                 case 'edit':
                   context.push(AppRoutes.photoEditor, extra: current.id);
+                case 'edit_video':
+                  context.push(AppRoutes.videoEditor, extra: current.id);
                 case 'info':
                   _showInfo(current);
                 case 'delete':
@@ -97,6 +100,7 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen> {
             },
             itemBuilder: (_) => [
               if (!current.isVideo) const PopupMenuItem(value: 'edit', child: Text('Edit photo')),
+              if (current.isVideo && canEditVideo) const PopupMenuItem(value: 'edit_video', child: Text('Edit video')),
               if (canExport) const PopupMenuItem(value: 'gallery', child: Text('Save to gallery')),
               const PopupMenuItem(value: 'info', child: Text('Details')),
               const PopupMenuItem(value: 'delete', child: Text('Delete…')),

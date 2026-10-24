@@ -3,7 +3,7 @@
 Statuses: working / partial / stubbed-fake / broken / missing / blocked-by-environment / not-applicable.
 "Working" here means exercised by automated tests on the host; **nothing is device-verified yet** (see KNOWN_LIMITATIONS E5). The Phase 0 matrix (baseline, WappTidy) is preserved in git history at `3c18c57`.
 
-_Last updated: end of Phase 2 (2026-10-24, branch `feature/wazapp`)._
+_Last updated: end of Phase 3 (2026-10-24, branch `feature/wazapp`)._
 
 | Feature | Pri | Status | Evidence / files | Verification | Blocker / next |
 |---|---|---|---|---|---|
@@ -19,7 +19,7 @@ _Last updated: end of Phase 2 (2026-10-24, branch `feature/wazapp`)._
 | Metadata integrity (missing files, interrupted writes) | P0 | working (host) | `reconcile()`, `.part` cleanup at startup, delete ordering | `library_service_test.dart` | call `reconcile()` periodically (not yet scheduled) |
 | Photo editor: crop (free/original/1:1/4:5/9:16/16:9), rotate, flip, brightness, contrast, saturation, 8 filters, text (6 fonts, size, colour, align, bold, outline, shadow), 32 emoji stickers, move/pinch/rotate overlays, undo/redo/reset, discard guard | P1 | working (host) | `features/editor/**` (shared preview/export renderer, `crop_math`, `photo_export_service`), entry: Create tab and viewer ▸ Edit photo. Sharpness intentionally NOT offered (ADR-004) | `photo_renderer_test` (pixel-level), `crop_math_test`, `photo_export_test` (real JPEG decode, original untouched, cancel/corrupt/rollback), `photo_editor_screen_test` (7) | on-device visual/touch check; large-photo timing; EXIF-orientation sample files |
 | Hindi/English status maker: 26 distinct templates, English/Hindi samples, font/size/colour/align/bold/shadow, auto-fit, 1080×1920 PNG, save + share | P1 | working (host) | `features/status_maker/**`; Devanagari shaping + fallback tests with the real bundled fonts | `status_renderer_test` (13), `status_maker_screen_test` (7: every template exports) | on-device check of Devanagari rendering on real GPU/fonts and of the share sheet → WhatsApp |
-| Video editor / export | P1 | missing | – | – | Phase 3 |
+| Video editor: trim (min 0.5 s), mute, crop (aspect presets + draggable frame), text/sticker overlays (Hindi/English), output size cap (only caps that shrink the video), undo/redo/reset, progress, cancel, retry | P1 | partial: Android working (host + emulator), **iOS missing** | `features/video_editor/**`, `VideoExportHandler.kt` (Media3 Transformer 1.9.2: H.264/AAC MP4), overlays rendered by Dart into a transparent PNG; output verified (size/duration/audio + decode) before it enters the library. ADR-005 | `video_edit_state_test`, `video_export_service_test` (fake encoder, rollback on every failure), `video_editor_screen_test` (fake player), `integration_test/video_export_test.dart` on an Android 16 emulator (see RELEASE_EVIDENCE) | physical-phone run (install blocked, E5); iOS AVFoundation implementation needs Xcode (blocked-by-environment); hardware-encoder behaviour/timing unmeasured |
 | Private Folder | P1 | missing (schema column `isPrivate` reserved, excluded from library queries) | `saved_media_table.dart`, test "excludes private items" | – | Phase 4 |
 | Storage Manager | P1 | partial | Settings shows WazApp library count/size (`usedBytes`) | manual calc only | duplicates/large files/bulk delete → Phase 4 |
 | WAPCentral service control / ads / notifications / promotions | P1 | missing | no integration code (SDKs unavailable, B1) | – | Phase 5, blocked by B1/B4 |

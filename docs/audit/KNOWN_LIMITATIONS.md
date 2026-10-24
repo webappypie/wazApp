@@ -37,5 +37,13 @@
 - L10. Status maker exports 9:16 only; maximum 300 characters; emoji depend on the platform emoji font.
 - L11. No sharpness control (not implementable honestly without native/shader code); video editing, Private Folder, Storage Manager are still missing (Phases 3-4).
 
+## Phase 3 additions
+- L12. **iOS has no video editor** (no verified encoder; Create and the viewer menu hide it there). Implementation would use AVFoundation and needs macOS/Xcode (E1).
+- L13. Video export is Android-only and was validated on an x86_64 **emulator** (software encoder); phone hardware encoders, 4K/HEVC/10-bit/HDR sources, very long videos and low-storage devices are untested.
+- L14. Output is always H.264/AAC in MP4, frame-accurate trim by re-encoding (slower than stream copy, no "lossless trim"); bitrate is derived from resolution (no quality slider); no rotate/flip, speed, filters or audio replacement for video.
+- L15. Export time depends on the device; progress is polled every 250 ms from the encoder. Cancelling takes effect immediately for the encoder; partial output is deleted.
+- L16. Crop/trim handles are touch-driven and were exercised only with simulated gestures in widget tests.
+- E7. The Android emulator and test clips generated on the host with a bundled ffmpeg (dev tool, not shipped) were used for verification; no user media was used.
+
 ## Not yet verified (nothing has been verified on a device in this audit)
 All runtime behaviour; only static analysis and unit/widget tests were run on the host (see `BASELINE_AUDIT.md`).

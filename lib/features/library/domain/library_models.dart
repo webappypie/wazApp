@@ -21,12 +21,16 @@ class FileInfo {
     required this.width,
     required this.height,
     this.durationMs = 0,
+    this.hasAudio = false,
   });
 
   final int sizeBytes;
   final int width;
   final int height;
   final int durationMs;
+
+  /// Videos only: whether an audio track is present.
+  final bool hasAudio;
 }
 
 extension SavedMediaX on SavedMedia {

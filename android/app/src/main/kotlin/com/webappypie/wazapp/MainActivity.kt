@@ -6,15 +6,17 @@ import io.flutter.embedding.engine.FlutterEngine
 
 /**
  * Hosts the Flutter UI and wires the native status-access bridge.
- * All channel logic lives in [StatusAccessHandler].
+ * Channel logic lives in [StatusAccessHandler] and [VideoExportHandler].
  */
 class MainActivity : FlutterActivity() {
 
     private var statusAccess: StatusAccessHandler? = null
+    private var videoExport: VideoExportHandler? = null
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
         statusAccess = StatusAccessHandler(this, flutterEngine.dartExecutor.binaryMessenger)
+        videoExport = VideoExportHandler(applicationContext, flutterEngine.dartExecutor.binaryMessenger)
     }
 
     @Deprecated("Deprecated in Java")
@@ -27,6 +29,8 @@ class MainActivity : FlutterActivity() {
     override fun cleanUpFlutterEngine(flutterEngine: FlutterEngine) {
         statusAccess?.dispose()
         statusAccess = null
+        videoExport?.dispose()
+        videoExport = null
         super.cleanUpFlutterEngine(flutterEngine)
     }
 }

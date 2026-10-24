@@ -16,6 +16,7 @@ import 'package:wazapp/core/di/providers.dart';
 import 'package:wazapp/core/services/onboarding/onboarding_service.dart';
 import 'package:wazapp/features/library/data/library_storage.dart';
 import 'package:wazapp/features/library/data/media_probe.dart';
+import 'package:wazapp/features/video_editor/data/video_encoder.dart';
 
 import 'fakes.dart';
 
@@ -37,10 +38,15 @@ final bool _driftQuiet = () {
 }();
 
 class Harness {
-  Harness._(this.tmp, this.sourceDir, this.db, this.storage, this.access, this.onboarding, this.realProbe);
+  Harness._(this.tmp, this.sourceDir, this.db, this.storage, this.access, this.onboarding, this.realProbe,
+      this.probe, this.encoder);
 
   /// Use the real image/video decoder instead of the fake probe (for export tests).
   final bool realProbe;
+
+  /// Optional probe / video encoder overrides (video editor tests).
+  final MediaProbe? probe;
+  final VideoEncoder? encoder;
 
   final Directory tmp;
   final Directory sourceDir;
@@ -54,6 +60,8 @@ class Harness {
     FakeStatusAccess? access,
     bool onboarded = true,
     bool realProbe = false,
+    MediaProbe? probe,
+    VideoEncoder? encoder,
   }) async {
     // Real file I/O must run outside the fake-async zone of testWidgets.
     final h = await tester.runAsync(() async {
@@ -73,6 +81,8 @@ class Harness {
       access ?? FakeStatusAccess(),
       FakeOnboarding(completed: onboarded),
       realProbe,
+      probe,
+      encoder,
     );
   }
 
@@ -81,7 +91,8 @@ class Harness {
         libraryStorageProvider.overrideWithValue(storage),
         statusAccessServiceProvider.overrideWithValue(access),
         mediaToolsProvider.overrideWithValue(access),
-        mediaProbeProvider.overrideWithValue(realProbe ? const FlutterMediaProbe() : FakeProbe()),
+        mediaProbeProvider.overrideWithValue(probe ?? (realProbe ? const FlutterMediaProbe() : FakeProbe())),
+        if (encoder != null) videoEncoderProvider.overrideWithValue(encoder!),
         onboardingServiceProvider.overrideWithValue(onboarding),
       ];
 

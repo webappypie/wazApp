@@ -71,3 +71,10 @@ flutter {
     source = "../.."
 }
 
+dependencies {
+    // Video editing (trim / crop / mute / overlays) and H.264 export. Same media3 line as video_player_android.
+    implementation("androidx.media3:media3-transformer:1.9.2")
+    implementation("androidx.media3:media3-effect:1.9.2")
+    implementation("androidx.media3:media3-common:1.9.2")
+    implementation("com.google.guava:guava:33.4.0-android")
+}

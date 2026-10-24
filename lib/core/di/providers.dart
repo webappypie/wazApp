@@ -15,6 +15,8 @@ import '../../features/editor/data/photo_export_service.dart';
 import '../../features/library/data/library_service.dart';
 import '../../features/library/data/library_storage.dart';
 import '../../features/library/data/media_probe.dart';
+import '../../features/video_editor/data/video_encoder.dart';
+import '../../features/video_editor/data/video_export_service.dart';
 import '../../features/status/data/status_access_service.dart';
 import '../database/app_database.dart';
 import '../services/onboarding/onboarding_service.dart';
@@ -75,6 +77,18 @@ final exportTempDirProvider = Provider<Directory>(
 final photoExportServiceProvider = Provider<PhotoExportService>(
   (ref) => PhotoExportService(
     library: ref.watch(libraryServiceProvider),
+    tempDir: ref.watch(exportTempDirProvider),
+  ),
+);
+
+/// Native video encoder (Android). Other platforms get an encoder that reports "unsupported".
+final videoEncoderProvider = Provider<VideoEncoder>((ref) => createPlatformVideoEncoder());
+
+final videoExportServiceProvider = Provider<VideoExportService>(
+  (ref) => VideoExportService(
+    library: ref.watch(libraryServiceProvider),
+    encoder: ref.watch(videoEncoderProvider),
+    tools: ref.watch(mediaToolsProvider),
     tempDir: ref.watch(exportTempDirProvider),
   ),
 );

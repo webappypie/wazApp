@@ -253,11 +253,15 @@ void paintEdit(
   canvas.drawImage(image, ui.Offset.zero, paint);
   canvas.restore();
 
-  if (drawOverlays) {
-    for (final o in s.overlays) {
-      if (o.id == hideOverlayId) continue;
-      _paintOverlay(canvas, out, o);
-    }
+  if (drawOverlays) paintOverlays(canvas, out, s.overlays, hideOverlayId: hideOverlayId);
+}
+
+/// Paints text/sticker overlays on top of whatever is already on [canvas]
+/// (used by the photo renderer and by the video overlay layer).
+void paintOverlays(ui.Canvas canvas, ui.Size frame, List<EditOverlay> overlays, {String? hideOverlayId}) {
+  for (final o in overlays) {
+    if (o.id == hideOverlayId) continue;
+    _paintOverlay(canvas, frame, o);
   }
 }
 

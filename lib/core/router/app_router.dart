@@ -17,6 +17,7 @@ import '../../features/settings/presentation/settings_screen.dart';
 import '../../features/status/domain/status_models.dart';
 import '../../features/status/presentation/home_screen.dart';
 import '../../features/status/presentation/status_preview_screen.dart';
+import '../../features/video_editor/presentation/video_editor_screen.dart';
 import '../../features/status_maker/presentation/status_maker_screen.dart';
 
 class AppRoutes {
@@ -30,6 +31,7 @@ class AppRoutes {
   static const viewer = '/viewer';
   static const statusPreview = '/status-preview';
   static const photoEditor = '/photo-editor';
+  static const videoEditor = '/video-editor';
   static const statusMaker = '/status-maker';
   static const create = '/create';
 }
@@ -61,6 +63,14 @@ GoRouter buildRouter() => GoRouter(
             final id = state.extra;
             if (id is! String) return const _BadRoute();
             return PhotoEditorScreen(mediaId: id);
+          },
+        ),
+        GoRoute(
+          path: AppRoutes.videoEditor,
+          builder: (_, state) {
+            final id = state.extra;
+            if (id is! String) return const _BadRoute();
+            return VideoEditorScreen(mediaId: id);
           },
         ),
         GoRoute(path: AppRoutes.statusMaker, builder: (_, _) => const StatusMakerScreen()),

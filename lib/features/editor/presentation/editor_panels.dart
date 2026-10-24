@@ -76,7 +76,10 @@ class _SliderRow extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        SizedBox(width: 84, child: Text(label, style: AppTextStyles.labelLarge)),
+        SizedBox(
+          width: 84,
+          child: Text(label, style: AppTextStyles.labelLarge),
+        ),
         Expanded(
           child: Semantics(
             label: label,
@@ -91,7 +94,14 @@ class _SliderRow extends StatelessWidget {
             ),
           ),
         ),
-        SizedBox(width: 40, child: Text(display, textAlign: TextAlign.end, style: AppTextStyles.labelMedium)),
+        SizedBox(
+          width: 40,
+          child: Text(
+            display,
+            textAlign: TextAlign.end,
+            style: AppTextStyles.labelMedium,
+          ),
+        ),
         if (onReset != null)
           IconButton(
             tooltip: 'Reset $label',
@@ -113,16 +123,20 @@ class AdjustPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final a = actions.state.adjust;
-    Widget row(String label, double v, ColorAdjust Function(double) set) => _SliderRow(
+    Widget row(String label, double v, ColorAdjust Function(double) set) =>
+        _SliderRow(
           label: label,
           value: v,
           min: -1,
           max: 1,
           display: _pct(v),
           onStart: actions.beginGesture,
-          onChanged: (x) => actions.preview(actions.state.copyWith(adjust: set(x))),
+          onChanged: (x) =>
+              actions.preview(actions.state.copyWith(adjust: set(x))),
           onEnd: actions.commitGesture,
-          onReset: v == 0 ? null : () => actions.push(actions.state.copyWith(adjust: set(0))),
+          onReset: v == 0
+              ? null
+              : () => actions.push(actions.state.copyWith(adjust: set(0))),
         );
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -136,8 +150,14 @@ class AdjustPanel extends StatelessWidget {
 }
 
 class CropPanel extends StatelessWidget {
-  const CropPanel({super.key, required this.actions});
+  /// [showOrientation] is false for video (rotate/flip are not supported by the video encoder here).
+  const CropPanel({
+    super.key,
+    required this.actions,
+    this.showOrientation = true,
+  });
   final EditorActions actions;
+  final bool showOrientation;
 
   @override
   Widget build(BuildContext context) {
@@ -166,25 +186,37 @@ class CropPanel extends StatelessWidget {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: [
-            _ToolIcon(icon: Icons.rotate_left, label: 'Rotate left', onTap: () => actions.push(s.rotatedCounterClockwise())),
-            _ToolIcon(icon: Icons.rotate_right, label: 'Rotate right', onTap: () => actions.push(s.rotatedClockwise())),
-            _ToolIcon(
-              icon: Icons.flip,
-              label: 'Flip horizontal',
-              selected: s.flipH,
-              onTap: () => actions.push(s.flippedHorizontally()),
-            ),
-            _ToolIcon(
-              icon: Icons.flip,
-              label: 'Flip vertical',
-              selected: s.flipV,
-              quarterTurns: 1,
-              onTap: () => actions.push(s.flippedVertically()),
-            ),
+            if (showOrientation) ...[
+              _ToolIcon(
+                icon: Icons.rotate_left,
+                label: 'Rotate left',
+                onTap: () => actions.push(s.rotatedCounterClockwise()),
+              ),
+              _ToolIcon(
+                icon: Icons.rotate_right,
+                label: 'Rotate right',
+                onTap: () => actions.push(s.rotatedClockwise()),
+              ),
+              _ToolIcon(
+                icon: Icons.flip,
+                label: 'Flip horizontal',
+                selected: s.flipH,
+                onTap: () => actions.push(s.flippedHorizontally()),
+              ),
+              _ToolIcon(
+                icon: Icons.flip,
+                label: 'Flip vertical',
+                selected: s.flipV,
+                quarterTurns: 1,
+                onTap: () => actions.push(s.flippedVertically()),
+              ),
+            ],
             _ToolIcon(
               icon: Icons.crop_free,
               label: 'Reset crop',
-              onTap: s.crop.isFull ? null : () => actions.push(s.copyWith(crop: CropRect.full)),
+              onTap: s.crop.isFull
+                  ? null
+                  : () => actions.push(s.copyWith(crop: CropRect.full)),
             ),
           ],
         ),
@@ -194,7 +226,13 @@ class CropPanel extends StatelessWidget {
 }
 
 class _ToolIcon extends StatelessWidget {
-  const _ToolIcon({required this.icon, required this.label, required this.onTap, this.selected = false, this.quarterTurns = 0});
+  const _ToolIcon({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+    this.selected = false,
+    this.quarterTurns = 0,
+  });
   final IconData icon;
   final String label;
   final VoidCallback? onTap;
@@ -219,9 +257,19 @@ class _ToolIcon extends StatelessWidget {
             children: [
               RotatedBox(
                 quarterTurns: quarterTurns,
-                child: Icon(icon, color: onTap == null ? scheme.outline : (selected ? scheme.primary : scheme.onSurface)),
+                child: Icon(
+                  icon,
+                  color: onTap == null
+                      ? scheme.outline
+                      : (selected ? scheme.primary : scheme.onSurface),
+                ),
               ),
-              Text(label, style: AppTextStyles.labelSmall, maxLines: 1, overflow: TextOverflow.ellipsis),
+              Text(
+                label,
+                style: AppTextStyles.labelSmall,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
             ],
           ),
         ),
@@ -264,13 +312,20 @@ class FilterPanel extends StatelessWidget {
                         decoration: BoxDecoration(
                           borderRadius: BorderRadius.circular(AppRadius.md),
                           border: Border.all(
-                            color: actions.state.filter == f ? scheme.primary : Colors.transparent,
+                            color: actions.state.filter == f
+                                ? scheme.primary
+                                : Colors.transparent,
                             width: 2.5,
                           ),
                         ),
                         child: ClipRRect(
                           borderRadius: BorderRadius.circular(AppRadius.sm),
-                          child: CustomPaint(painter: _ThumbPainter(image, EditState(filter: f, crop: square))),
+                          child: CustomPaint(
+                            painter: _ThumbPainter(
+                              image,
+                              EditState(filter: f, crop: square),
+                            ),
+                          ),
                         ),
                       ),
                       const SizedBox(height: 4),
@@ -292,11 +347,17 @@ class _ThumbPainter extends CustomPainter {
   final EditState state;
 
   @override
-  void paint(Canvas canvas, Size size) =>
-      paintEdit(canvas, ui.Size(size.width, size.height), image, state, drawOverlays: false);
+  void paint(Canvas canvas, Size size) => paintEdit(
+    canvas,
+    ui.Size(size.width, size.height),
+    image,
+    state,
+    drawOverlays: false,
+  );
 
   @override
-  bool shouldRepaint(_ThumbPainter old) => old.image != image || old.state != state;
+  bool shouldRepaint(_ThumbPainter old) =>
+      old.image != image || old.state != state;
 }
 
 class TextPanel extends StatelessWidget {
@@ -370,7 +431,13 @@ class TextPanel extends StatelessWidget {
                 Padding(
                   padding: const EdgeInsets.only(right: AppSpacing.sm),
                   child: ChoiceChip(
-                    label: Text(f.label, style: TextStyle(fontFamily: f.family, fontFamilyFallback: const [kDevanagariFallbackFamily])),
+                    label: Text(
+                      f.label,
+                      style: TextStyle(
+                        fontFamily: f.family,
+                        fontFamilyFallback: const [kDevanagariFallbackFamily],
+                      ),
+                    ),
                     selected: t.fontKey == f.key,
                     onSelected: (_) => change(t.copyWith(fontKey: f.key)),
                   ),
@@ -385,7 +452,9 @@ class TextPanel extends StatelessWidget {
           max: 0.3,
           display: _pct(t.sizeFrac),
           onStart: actions.beginGesture,
-          onChanged: (x) => actions.preview(actions.state.upsertOverlay(t.copyWith(sizeFrac: x))),
+          onChanged: (x) => actions.preview(
+            actions.state.upsertOverlay(t.copyWith(sizeFrac: x)),
+          ),
           onEnd: actions.commitGesture,
         ),
         _Swatches(
@@ -398,16 +467,40 @@ class TextPanel extends StatelessWidget {
             SegmentedButton<OverlayAlign>(
               showSelectedIcon: false,
               segments: const [
-                ButtonSegment(value: OverlayAlign.left, icon: Icon(Icons.format_align_left), tooltip: 'Align left'),
-                ButtonSegment(value: OverlayAlign.center, icon: Icon(Icons.format_align_center), tooltip: 'Align centre'),
-                ButtonSegment(value: OverlayAlign.right, icon: Icon(Icons.format_align_right), tooltip: 'Align right'),
+                ButtonSegment(
+                  value: OverlayAlign.left,
+                  icon: Icon(Icons.format_align_left),
+                  tooltip: 'Align left',
+                ),
+                ButtonSegment(
+                  value: OverlayAlign.center,
+                  icon: Icon(Icons.format_align_center),
+                  tooltip: 'Align centre',
+                ),
+                ButtonSegment(
+                  value: OverlayAlign.right,
+                  icon: Icon(Icons.format_align_right),
+                  tooltip: 'Align right',
+                ),
               ],
               selected: {t.align},
               onSelectionChanged: (s) => change(t.copyWith(align: s.first)),
             ),
-            FilterChip(label: const Text('Bold'), selected: t.bold, onSelected: (v) => change(t.copyWith(bold: v))),
-            FilterChip(label: const Text('Outline'), selected: t.outline, onSelected: (v) => change(t.copyWith(outline: v))),
-            FilterChip(label: const Text('Shadow'), selected: t.shadow, onSelected: (v) => change(t.copyWith(shadow: v))),
+            FilterChip(
+              label: const Text('Bold'),
+              selected: t.bold,
+              onSelected: (v) => change(t.copyWith(bold: v)),
+            ),
+            FilterChip(
+              label: const Text('Outline'),
+              selected: t.outline,
+              onSelected: (v) => change(t.copyWith(outline: v)),
+            ),
+            FilterChip(
+              label: const Text('Shadow'),
+              selected: t.shadow,
+              onSelected: (v) => change(t.copyWith(shadow: v)),
+            ),
           ],
         ),
       ],
@@ -443,7 +536,12 @@ class _Swatches extends StatelessWidget {
                     decoration: BoxDecoration(
                       color: Color(c),
                       shape: BoxShape.circle,
-                      border: Border.all(color: c == selected ? scheme.primary : scheme.outlineVariant, width: c == selected ? 3 : 1),
+                      border: Border.all(
+                        color: c == selected
+                            ? scheme.primary
+                            : scheme.outlineVariant,
+                        width: c == selected ? 3 : 1,
+                      ),
                     ),
                   ),
                 ),
@@ -484,7 +582,13 @@ class StickerPanel extends StatelessWidget {
                   child: InkWell(
                     borderRadius: BorderRadius.circular(AppRadius.md),
                     onTap: () => actions.addSticker(e),
-                    child: SizedBox(width: 52, height: 52, child: Center(child: Text(e, style: const TextStyle(fontSize: 28)))),
+                    child: SizedBox(
+                      width: 52,
+                      height: 52,
+                      child: Center(
+                        child: Text(e, style: const TextStyle(fontSize: 28)),
+                      ),
+                    ),
                   ),
                 ),
             ],
@@ -501,7 +605,9 @@ class StickerPanel extends StatelessWidget {
                   max: 0.6,
                   display: _pct(s.sizeFrac),
                   onStart: actions.beginGesture,
-                  onChanged: (x) => actions.preview(actions.state.upsertOverlay(s.copyWith(sizeFrac: x))),
+                  onChanged: (x) => actions.preview(
+                    actions.state.upsertOverlay(s.copyWith(sizeFrac: x)),
+                  ),
                   onEnd: actions.commitGesture,
                 ),
               ),
@@ -516,7 +622,10 @@ class StickerPanel extends StatelessWidget {
             ],
           )
         else
-          Text('Tap a sticker to add it, then drag, pinch and rotate.', style: AppTextStyles.bodySmall),
+          Text(
+            'Tap a sticker to add it, then drag, pinch and rotate.',
+            style: AppTextStyles.bodySmall,
+          ),
       ],
     );
   }

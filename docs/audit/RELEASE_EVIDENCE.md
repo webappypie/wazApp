@@ -2,6 +2,34 @@
 
 Only commands that were actually run are listed. Host: Windows 11, Flutter 3.47.1 / Dart 3.13.1, Android SDK 36.1.0. Branch `feature/wazapp`.
 
+## Phase 3 (end state, 2026-10-25)
+
+| Check | Command | Result |
+|---|---|---|
+| Static analysis | `flutter analyze` | **No issues found** |
+| Automated tests (host) | `flutter test` | **176 passed, 0 failed** (+31 for video: edit-state/plan/validation 17, export service with fake encoder 7, editor screen with fake player 8 - counted in the 176 total) |
+| Kotlin / Media3 compile | Gradle `compileDebugKotlin` | OK (media3-transformer/effect/common 1.9.2) |
+| Android debug build | `flutter test integration_test/...` builds `assembleDebug` | OK |
+| **Real encoder on an emulator** | `flutter test integration_test/video_export_test.dart -d emulator-5554` (AVD `wazapp_test`, Android 16 / API 36, x86_64 Google APIs image, software GPU; two host-generated 1280×720 15 fps H.264+AAC clips, 8 s and 40 s, copied into the app's private directory) | **10/10 passed** |
+| Install on the physical phone | `adb install` | not retried in this phase; last result `INSTALL_FAILED_USER_RESTRICTED` (owner action E5 still open) |
+| Release/R8 build with media3 | – | **not run** in Phase 3 |
+
+What the 10 emulator tests prove (production classes, real MediaCodec encoder, real `video_player`):
+1. Native probe reads size/duration/has-audio of the source.
+2. **Trim** 1.0-4.0 s → ~3 s H.264 file, full size, audio kept.
+3. **Mute** → output has no audio track, video intact.
+4. **Crop** (right half) → 640×720 output whose pixels match the *right half* of the source frame (compared against both halves; not mirrored/shifted).
+5. **Size cap** 640×360 → decodes and plays in the real `VideoPlayerController` with the right size/duration.
+6. **Overlay** PNG → red block burned in at the right pixels while the rest of the frame is the original picture.
+7. **Progress** callbacks are within 0..1 and non-decreasing (87-138 samples per export).
+8. **Cancel** of a 40 s export → `OperationCancelled`, no output file left (the same test originally failed because of a race in the *test* - the error surfaced before the handler was attached - not in the product; it was fixed in the test).
+9. Missing input → `sourceUnavailable`.
+10. **End to end** `VideoExportService` with real library, DB and probe: trim + mute + crop + Hindi text overlay → new edited video 640×720, ~4 s, no audio, thumbnail created, original untouched, no temp leftovers, two library rows.
+
+Not proven: behaviour on a physical phone's hardware encoder, 4K/HEVC/10-bit/HDR input, long videos, low storage, thermal/battery, exact export times (the emulator's software encoder ran ~5-8× slower than real time; a 3 s clip took ~20 s), touch handling of trim/crop handles on a real screen, iOS (no encoder implemented).
+
+Environment notes from this phase: the host has 8 GB RAM; with the emulator running and the original `-Xmx8G` Gradle daemon, one build took 43 minutes and corrupted Gradle script caches (random `NoClassDefFoundError`). `android/gradle.properties` heap was lowered to `-Xmx3G`/2G metaspace and the Gradle script caches were deleted and regenerated; builds then took 4-17 minutes.
+
 ## Phase 2 (end state, 2026-10-24)
 
 | Check | Command | Result |

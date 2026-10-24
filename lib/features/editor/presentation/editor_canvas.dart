@@ -15,9 +15,12 @@ import '../domain/photo_renderer.dart';
 enum EditorTool { adjust, crop, filters, text, stickers }
 
 class EditorCanvas extends StatefulWidget {
+  /// Photo mode: pass [image]. Video mode: pass [sourceSize] and [baseBuilder].
   const EditorCanvas({
     super.key,
-    required this.image,
+    this.image,
+    this.sourceSize,
+    this.baseBuilder,
     required this.state,
     required this.tool,
     required this.selectedId,
@@ -27,7 +30,12 @@ class EditorCanvas extends StatefulWidget {
     this.lockedRatio,
   });
 
-  final ui.Image image;
+  final ui.Image? image;
+  final ui.Size? sourceSize;
+
+  /// Builds the picture under the overlays (e.g. a video player) for a frame of the given size.
+  /// While cropping it must show the whole uncropped source.
+  final Widget Function(BuildContext context, Size frame, EditState state, bool cropping)? baseBuilder;
   final EditState state;
   final EditorTool tool;
   final String? selectedId;
@@ -55,7 +63,8 @@ class _EditorCanvasState extends State<EditorCanvas> {
 
   bool get _cropping => widget.tool == EditorTool.crop;
 
-  ui.Size get _source => ui.Size(widget.image.width.toDouble(), widget.image.height.toDouble());
+  ui.Size get _source =>
+      widget.sourceSize ?? ui.Size(widget.image!.width.toDouble(), widget.image!.height.toDouble());
 
   /// Size of the image area shown (full oriented image while cropping, else the cropped frame).
   ui.Size _frameAspect() {
@@ -88,11 +97,18 @@ class _EditorCanvasState extends State<EditorCanvas> {
               child: Stack(
                 fit: StackFit.expand,
                 children: [
-                  RepaintBoundary(
-                    child: CustomPaint(
-                      painter: _PhotoPainter(widget.image, widget.state, _cropping),
+                  if (widget.baseBuilder != null) ...[
+                    widget.baseBuilder!(context, frame, widget.state, _cropping),
+                    if (!_cropping)
+                      IgnorePointer(
+                        child: CustomPaint(painter: _OverlaysPainter(widget.state.overlays)),
+                      ),
+                  ] else
+                    RepaintBoundary(
+                      child: CustomPaint(
+                        painter: _PhotoPainter(widget.image!, widget.state, _cropping),
+                      ),
                     ),
-                  ),
                   IgnorePointer(
                     child: CustomPaint(
                       painter: _ChromePainter(
@@ -221,6 +237,17 @@ class _PhotoPainter extends CustomPainter {
   @override
   bool shouldRepaint(_PhotoPainter old) =>
       old.image != image || old.state != state || old.cropping != cropping;
+}
+
+class _OverlaysPainter extends CustomPainter {
+  _OverlaysPainter(this.overlays);
+  final List<EditOverlay> overlays;
+
+  @override
+  void paint(Canvas canvas, Size size) => paintOverlays(canvas, ui.Size(size.width, size.height), overlays);
+
+  @override
+  bool shouldRepaint(_OverlaysPainter old) => old.overlays != overlays;
 }
 
 class _ChromePainter extends CustomPainter {

@@ -160,6 +160,7 @@ class ChannelStatusAccessService implements StatusAccessService, MediaTools {
         width: (m['width'] as num).toInt(),
         height: (m['height'] as num).toInt(),
         durationMs: (m['durationMs'] as num?)?.toInt() ?? 0,
+        hasAudio: m['hasAudio'] == true,
       );
 
   @override

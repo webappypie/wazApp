@@ -56,3 +56,20 @@ Sharpness control (cannot be done honestly with Canvas only), free-angle straigh
 
 ### Known gaps
 No on-device run (install blocked, see KNOWN_LIMITATIONS E5); status maker has no 1:1 export size (9:16 only); overlays do not rotate with the photo when the photo is rotated (they stay in the frame); crop frame resets when rotating/flipping.
+
+## 2026-10-24 — Phase 3: video editor (Android)
+
+### Delivered
+- `android/.../VideoExportHandler.kt`: Media3 Transformer 1.9.2 export (H.264/AAC MP4): trim, mute, crop, one full-frame transparent overlay bitmap, even-sized output, bitrate by resolution; progress polling, cancel (+ partial-output deletion), single-flight guard, free-space pre-check, `unsupported` mapping for codec failures. `StatusAccessHandler.describeFile` now reports `hasAudio`.
+- `features/video_editor`: `VideoEditState` + pure planning/validation (`clampTrim`, `outputSize`, `planVideoExport`, `checkExportedVideo`), `VideoEncoder` bridge (+ `UnsupportedVideoEncoder` on iOS), `VideoExportService` (plan → overlay PNG → encode → verify → library), `VideoEditorScreen` (play/pause loop within trim, range-slider trim with 0.5 s minimum, crop frame with aspect presets, text/sticker overlays reusing the photo editor's panels, mute, size caps, undo/redo/reset, discard guard, progress with real percentage, cancel, retry dialog).
+- `EditorCanvas` generalised (optional `baseBuilder`) so photos and videos share one gesture/overlay/crop implementation; `paintOverlays` extracted.
+- Create tab and viewer menu offer video editing only when `VideoEncoder.isSupported`.
+- `LibraryService.addCreatedFile` reused for video (exact-size check + `video_player` decode).
+- Environment fix: `android/gradle.properties` heap lowered from `-Xmx8G` to `-Xmx3G` (this machine has 8 GB RAM; with the emulator running, the 8 GB daemon thrashed and one build took 43 min).
+
+### Bugs found by the new tests and fixed
+1. Editor tool panels were wrapped in a coloured `Container`, which hid ink/ripples of chips and list tiles (framework assertion) → `Material` surface (photo and video editors).
+2. `clampTrim` semantics were pinned down by exhaustive tests (pushes the handle that did not move).
+
+### Verification
+See `RELEASE_EVIDENCE.md` (Phase 3 section) for exactly what ran on the emulator and what did not.

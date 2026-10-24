@@ -369,11 +369,14 @@ class _PhotoEditorScreenState extends ConsumerState<PhotoEditorScreen> implement
                 ),
               ),
             ),
-            Container(
+            // Material (not a coloured box) so chip/list ink is visible.
+            Material(
               color: scheme.surface,
-              padding: const EdgeInsets.fromLTRB(AppSpacing.md, AppSpacing.sm, AppSpacing.md, 0),
-              constraints: BoxConstraints(maxHeight: MediaQuery.sizeOf(context).height * 0.4),
-              child: SingleChildScrollView(child: _panel()),
+              child: Container(
+                padding: const EdgeInsets.fromLTRB(AppSpacing.md, AppSpacing.sm, AppSpacing.md, 0),
+                constraints: BoxConstraints(maxHeight: MediaQuery.sizeOf(context).height * 0.4),
+                child: SingleChildScrollView(child: _panel()),
+              ),
             ),
             SafeArea(
               top: false,

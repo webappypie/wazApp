@@ -34,6 +34,9 @@ class FakeStatusAccess implements StatusAccessService, MediaTools {
   /// When set, listStatuses fails with this failure (e.g. folder cleared by WhatsApp).
   MediaFailure? listFailure;
 
+  /// Overrides [describeFile] (e.g. to describe an exported video).
+  FileInfo Function(String path, MediaKind kind)? describe;
+
   AccessRequestResult nextRequestResult = AccessRequestResult.granted;
   int requestCount = 0;
   final List<Map<String, String>> exported = [];
@@ -117,7 +120,7 @@ class FakeStatusAccess implements StatusAccessService, MediaTools {
 
   @override
   Future<FileInfo> describeFile(String path, MediaKind kind) async =>
-      FileInfo(sizeBytes: await File(path).length(), width: 10, height: 10);
+      describe?.call(path, kind) ?? FileInfo(sizeBytes: await File(path).length(), width: 10, height: 10);
 
   @override
   Future<void> exportToGallery({

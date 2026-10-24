@@ -477,6 +477,7 @@ class StatusAccessHandler(
         var width: Int
         var height: Int
         var durationMs = 0L
+        var hasAudio = false
         if (isVideo) {
             val r = MediaMetadataRetriever()
             try {
@@ -484,6 +485,7 @@ class StatusAccessHandler(
                 width = r.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_WIDTH)?.toIntOrNull() ?: 0
                 height = r.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_HEIGHT)?.toIntOrNull() ?: 0
                 durationMs = r.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)?.toLongOrNull() ?: 0L
+                hasAudio = r.extractMetadata(MediaMetadataRetriever.METADATA_KEY_HAS_AUDIO) == "yes"
                 val rot = r.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_ROTATION)?.toIntOrNull() ?: 0
                 if (rot == 90 || rot == 270) {
                     val t = width
@@ -503,7 +505,13 @@ class StatusAccessHandler(
             height = o.outHeight
             if (width <= 0 || height <= 0) throw Fail("corrupt", "The image file is not readable")
         }
-        return mapOf("width" to width, "height" to height, "durationMs" to durationMs, "size" to file.length())
+        return mapOf(
+            "width" to width,
+            "height" to height,
+            "durationMs" to durationMs,
+            "size" to file.length(),
+            "hasAudio" to hasAudio,
+        )
     }
 
     // ---------------------------------------------------------------------------------------

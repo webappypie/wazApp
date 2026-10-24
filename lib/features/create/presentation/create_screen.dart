@@ -2,19 +2,20 @@
 //
 // Entry point for creating content. Only tools that really work are listed.
 
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/database/app_database.dart';
 import '../../../core/design/tokens.dart';
+import '../../../core/di/providers.dart';
 import '../../../core/router/app_router.dart';
+import '../../../core/widgets/media_tile.dart';
 import '../../library/domain/library_models.dart';
 import '../../status_maker/domain/status_templates.dart';
 import '../../library/presentation/library_actions.dart';
 import '../../library/presentation/library_providers.dart';
+import '../../library/presentation/saved_screen.dart' show SavedThumb;
 
 class CreateScreen extends ConsumerWidget {
   const CreateScreen({super.key});
@@ -31,8 +32,17 @@ class CreateScreen extends ConsumerWidget {
             title: 'Edit a photo',
             body: 'Crop, rotate, adjust colours, apply filters, add text and stickers. '
                 'Your original photo is never changed.',
-            onTap: () => pickPhotoToEdit(context, ref),
+            onTap: () => pickMediaToEdit(context, ref, MediaKind.image),
           ),
+          if (ref.watch(videoEncoderProvider).isSupported) ...[
+            const SizedBox(height: AppSpacing.md),
+            _ToolCard(
+              icon: Icons.movie_edit,
+              title: 'Edit a video',
+              body: 'Trim, mute, crop and add text or stickers. Saved as a new MP4; your original is never changed.',
+              onTap: () => pickMediaToEdit(context, ref, MediaKind.video),
+            ),
+          ],
           const SizedBox(height: AppSpacing.md),
           _ToolCard(
             icon: Icons.format_quote_rounded,
@@ -93,24 +103,28 @@ class _ToolCard extends StatelessWidget {
   }
 }
 
-/// Lets the user choose a photo from the library (or import one) and opens the editor.
-Future<void> pickPhotoToEdit(BuildContext context, WidgetRef ref) async {
+/// Lets the user choose a photo or video from the library (or import one) and opens its editor.
+Future<void> pickMediaToEdit(BuildContext context, WidgetRef ref, MediaKind kind) async {
   final id = await showModalBottomSheet<String>(
     context: context,
     isScrollControlled: true,
     showDragHandle: true,
-    builder: (ctx) => const _PhotoPickerSheet(),
+    builder: (ctx) => _MediaPickerSheet(kind: kind),
   );
-  if (id != null && context.mounted) context.push(AppRoutes.photoEditor, extra: id);
+  if (id != null && context.mounted) {
+    context.push(kind == MediaKind.video ? AppRoutes.videoEditor : AppRoutes.photoEditor, extra: id);
+  }
 }
 
-class _PhotoPickerSheet extends ConsumerWidget {
-  const _PhotoPickerSheet();
+class _MediaPickerSheet extends ConsumerWidget {
+  const _MediaPickerSheet({required this.kind});
+  final MediaKind kind;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final items = ref.watch(libraryItemsProvider);
-    final photos = (items.value ?? const <SavedMedia>[]).where((m) => m.mediaKind == MediaKind.image).toList();
+    final media = (items.value ?? const <SavedMedia>[]).where((m) => m.mediaKind == kind).toList();
+    final noun = kind == MediaKind.video ? 'video' : 'photo';
     return SafeArea(
       child: SizedBox(
         height: MediaQuery.sizeOf(context).height * 0.7,
@@ -120,7 +134,7 @@ class _PhotoPickerSheet extends ConsumerWidget {
               padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
               child: Row(
                 children: [
-                  const Expanded(child: Text('Choose a photo', style: AppTextStyles.titleMedium)),
+                  Expanded(child: Text('Choose a $noun', style: AppTextStyles.titleMedium)),
                   TextButton.icon(
                     icon: const Icon(Icons.add_photo_alternate_outlined),
                     label: const Text('Import'),
@@ -130,14 +144,11 @@ class _PhotoPickerSheet extends ConsumerWidget {
               ),
             ),
             Expanded(
-              child: photos.isEmpty
-                  ? const Center(
+              child: media.isEmpty
+                  ? Center(
                       child: Padding(
-                        padding: EdgeInsets.all(AppSpacing.lg),
-                        child: Text(
-                          'No photos yet. Import one, or save a status first.',
-                          textAlign: TextAlign.center,
-                        ),
+                        padding: const EdgeInsets.all(AppSpacing.lg),
+                        child: Text('No ${noun}s yet. Import one, or save a status first.', textAlign: TextAlign.center),
                       ),
                     )
                   : GridView.builder(
@@ -147,26 +158,15 @@ class _PhotoPickerSheet extends ConsumerWidget {
                         mainAxisSpacing: AppSpacing.sm,
                         crossAxisSpacing: AppSpacing.sm,
                       ),
-                      itemCount: photos.length,
+                      itemCount: media.length,
                       itemBuilder: (context, i) {
-                        final m = photos[i];
-                        return Semantics(
-                          button: true,
-                          label: 'Photo ${m.fileName}',
-                          child: InkWell(
-                            borderRadius: BorderRadius.circular(AppRadius.md),
-                            onTap: () => Navigator.pop(context, m.id),
-                            child: ClipRRect(
-                              borderRadius: BorderRadius.circular(AppRadius.md),
-                              child: Image.file(
-                                File(m.path),
-                                fit: BoxFit.cover,
-                                cacheWidth: 240,
-                                excludeFromSemantics: true,
-                                errorBuilder: (_, _, _) => const Center(child: Icon(Icons.broken_image_outlined)),
-                              ),
-                            ),
-                          ),
+                        final m = media[i];
+                        return MediaTile(
+                          semanticLabel: '$noun ${m.fileName}',
+                          isVideo: m.isVideo,
+                          duration: m.isVideo ? m.duration : null,
+                          onTap: () => Navigator.pop(context, m.id),
+                          child: SavedThumb(media: m),
                         );
                       },
                     ),
