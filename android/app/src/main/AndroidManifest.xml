@@ -6,8 +6,10 @@
           folder; no storage permission is needed).
         - Importing uses system pickers (no media permission needed).
         - WRITE_EXTERNAL_STORAGE is only needed to export to the gallery on API 26-28.
+        - USE_BIOMETRIC lets the optional Private Folder lock ask for fingerprint/face/PIN.
         MANAGE_EXTERNAL_STORAGE and READ_MEDIA_* are intentionally NOT requested.
     -->
+    <uses-permission android:name="android.permission.USE_BIOMETRIC" />
     <uses-permission
         android:name="android.permission.WRITE_EXTERNAL_STORAGE"
         android:maxSdkVersion="28" />

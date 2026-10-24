@@ -2,6 +2,21 @@
 
 Only commands that were actually run are listed. Host: Windows 11, Flutter 3.47.1 / Dart 3.13.1, Android SDK 36.1.0. Branch `feature/wazapp`.
 
+## Phase 4 (end state, 2026-10-25)
+
+| Check | Command | Result |
+|---|---|---|
+| Static analysis | `flutter analyze` | **No issues found** |
+| Automated tests (host) | `flutter test` | **223 passed, 0 failed** (+47 vs Phase 3: private service 9, private UI 13, storage service 17, storage screen 6, migration 2) |
+| Schema migration | `database_migration_test` | v1 to v2 keeps rows, adds hash columns |
+| Device authentication on an emulator (Android 16, PIN set) | `flutter test integration_test/device_auth_test.dart -d emulator-5554` | **3/3 passed**: available with a screen lock; the real system prompt opened and the PIN returned success; dismissing returned a non-success outcome |
+| Device authentication without any screen lock | `flutter test integration_test/device_auth_nolock_test.dart -d emulator-5554` (after `locksettings clear`) | **2/2 passed**: reported not available; `authenticate` returned `notAvailable`, never success |
+| Android build with local_auth, AppCompat, FragmentActivity | built by the runs above (`assembleDebug`) | OK |
+| Physical phone | - | not retried (E5 open) |
+| Release/R8 build | - | **not run** since Phase 1 (media3 and local_auth were added later) |
+
+Not proven: fingerprint/face prompts, OEM biometric UIs, iOS, behaviour of the Private Folder under a screen recorder, time to hash a large library on a phone, root/forensic access to private files (they are not encrypted).
+
 ## Phase 3 (end state, 2026-10-25)
 
 | Check | Command | Result |

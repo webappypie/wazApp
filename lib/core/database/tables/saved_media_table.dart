@@ -57,6 +57,13 @@ class SavedMediaTable extends Table {
   /// Cached thumbnail file (JPEG) inside app storage, if generated.
   TextColumn get thumbnailPath => text().nullable()();
 
+  /// SHA-256 of the file bytes (hex), computed on demand by the Storage Manager. Files are never
+  /// modified in place, so a cached value stays valid for the life of the row.
+  TextColumn get contentHash => text().nullable()();
+
+  /// 64-bit difference hash of a photo (16 hex chars), used only to flag look-alike photos.
+  TextColumn get visualHash => text().nullable()();
+
   @override
   Set<Column> get primaryKey => {id};
 }

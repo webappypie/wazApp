@@ -1,14 +1,15 @@
 package com.webappypie.wazapp
 
 import android.content.Intent
-import io.flutter.embedding.android.FlutterActivity
+import io.flutter.embedding.android.FlutterFragmentActivity
 import io.flutter.embedding.engine.FlutterEngine
 
 /**
  * Hosts the Flutter UI and wires the native status-access bridge.
  * Channel logic lives in [StatusAccessHandler] and [VideoExportHandler].
  */
-class MainActivity : FlutterActivity() {
+/** FlutterFragmentActivity (not FlutterActivity) is required by local_auth's BiometricPrompt. */
+class MainActivity : FlutterFragmentActivity() {
 
     private var statusAccess: StatusAccessHandler? = null
     private var videoExport: VideoExportHandler? = null

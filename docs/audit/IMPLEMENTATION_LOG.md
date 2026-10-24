@@ -73,3 +73,21 @@ No on-device run (install blocked, see KNOWN_LIMITATIONS E5); status maker has n
 
 ### Verification
 See `RELEASE_EVIDENCE.md` (Phase 3 section) for exactly what ran on the emulator and what did not.
+
+## 2026-10-25 - Phase 4: Private Folder + Storage Manager
+
+### Delivered
+- **DB schema v2** (`content_hash`, `visual_hash`) with `onUpgrade` (`addColumn`), migration test from a literal v1 schema.
+- **Private Folder:** separate `private/` + `private_thumbs/` directories; `LibraryService.moveToPrivate/restoreFromPrivate` (rename files, single row update, rollback on failure); queries `watchPrivate/watchAll`; Private tab (5th tab), lock/unlock session, re-lock on `paused/hidden`, always-visible honest banner, move-back/share/save-a-copy/delete; Saved and viewer menus "Move to Private Folder"; viewer refuses private items while locked; edit hidden for private items.
+- **Device authentication:** `DeviceAuthService` over `local_auth` 3.x; `MainActivity` is now `FlutterFragmentActivity`, `USE_BIOMETRIC`, AppCompat launch themes, iOS `NSFaceIDUsageDescription`. Settings switch: enabling requires passing the prompt, disabling requires authentication, a phone without a screen lock cannot enable it.
+- **Storage Manager** (Settings > Storage Manager): `StorageService.report()` measured from disk and reconciled with the directories; large files; duplicate scan (size, then SHA-256 in an isolate; photos get a 9x8 dHash; hashes cached); clean-ups (unreferenced files, temp files, broken entries); `StorageScreen` with explanation text and count/size confirmations. ADR-006.
+- `LibraryStorage` private dirs, `usedBytes`, partial-file cleanup; `reconcile()` sweeps orphan thumbnails of both directories.
+
+### Bugs/risks found by the new tests
+1. A first draft let a file appear in both an identical group and a look-alike group (double-counted reclaimable space): look-alike groups now use only the oldest of each identical group, so suggested deletions are disjoint (tested).
+2. `deleteUnreferenced` counted an already-missing file as deleted ("freed 0 B"): now skipped.
+3. A UI test pressed a stale tile (action buttons re-render after the report refresh): the test now waits for the refresh; product behaviour unchanged.
+4. Windows hosts hold image handles after decoding, so renaming/deleting displayed images fails in widget tests: those tests use video rows (no image file is opened). The product code uses rename/unlink, which is correct on Android.
+
+### Environment
+Emulator `wazapp_test` (Android 16) was used for the authentication checks. A PIN was set with `adb shell locksettings set-pin` and typed by a host helper via `input keyevent`; PIN screens are secure windows (screenshots are black), so those steps were verified by test outcomes, not by eye. One run failed because Android killed the app start (`failed to attach` while Gradle was busy); a retry with the cached build passed.

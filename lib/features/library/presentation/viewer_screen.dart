@@ -17,7 +17,7 @@ import '../../../core/format.dart';
 import '../../../core/router/app_router.dart';
 import '../domain/library_models.dart';
 import 'library_actions.dart';
-import 'library_providers.dart';
+import '../../private_folder/presentation/private_providers.dart';
 import 'saved_screen.dart';
 
 class ViewerScreen extends ConsumerStatefulWidget {
@@ -39,7 +39,7 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen> {
   }
 
   List<SavedMedia> _resolve() {
-    final byId = {for (final m in ref.watch(libraryItemsProvider).value ?? const <SavedMedia>[]) m.id: m};
+    final byId = {for (final m in ref.watch(allMediaProvider).value ?? const <SavedMedia>[]) m.id: m};
     return [for (final id in widget.args.ids) if (byId[id] != null) byId[id]!];
   }
 
@@ -50,6 +50,16 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen> {
       return Scaffold(
         appBar: AppBar(),
         body: const Center(child: Text('This item is no longer in your library.')),
+      );
+    }
+    // Private items are only viewable while the Private Folder is unlocked.
+    if (items.any((m) => m.isPrivate) && ref.watch(privateSessionProvider) == PrivateAccess.locked) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && context.canPop()) context.pop();
+      });
+      return Scaffold(
+        appBar: AppBar(),
+        body: const Center(child: Text('The Private Folder is locked.')),
       );
     }
     final index = _index.clamp(0, items.length - 1);
@@ -85,6 +95,12 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen> {
                   context.push(AppRoutes.photoEditor, extra: current.id);
                 case 'edit_video':
                   context.push(AppRoutes.videoEditor, extra: current.id);
+                case 'private':
+                  final r = await moveToPrivateFlow(context, ref, [current.id]);
+                  if (r != null && r.moved > 0 && context.mounted) context.pop();
+                case 'unprivate':
+                  final r = await restoreFromPrivateFlow(context, ref, [current.id]);
+                  if (r != null && r.moved > 0 && context.mounted) context.pop();
                 case 'info':
                   _showInfo(current);
                 case 'delete':
@@ -99,8 +115,14 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen> {
               }
             },
             itemBuilder: (_) => [
-              if (!current.isVideo) const PopupMenuItem(value: 'edit', child: Text('Edit photo')),
-              if (current.isVideo && canEditVideo) const PopupMenuItem(value: 'edit_video', child: Text('Edit video')),
+              // Edited copies would land in the normal library, so private items cannot be edited.
+              if (!current.isPrivate && !current.isVideo) const PopupMenuItem(value: 'edit', child: Text('Edit photo')),
+              if (!current.isPrivate && current.isVideo && canEditVideo)
+                const PopupMenuItem(value: 'edit_video', child: Text('Edit video')),
+              if (current.isPrivate)
+                const PopupMenuItem(value: 'unprivate', child: Text('Move back to Saved'))
+              else
+                const PopupMenuItem(value: 'private', child: Text('Move to Private Folder')),
               if (canExport) const PopupMenuItem(value: 'gallery', child: Text('Save to gallery')),
               const PopupMenuItem(value: 'info', child: Text('Details')),
               const PopupMenuItem(value: 'delete', child: Text('Delete…')),

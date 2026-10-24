@@ -16,9 +16,33 @@ import 'package:wazapp/core/di/providers.dart';
 import 'package:wazapp/core/services/onboarding/onboarding_service.dart';
 import 'package:wazapp/features/library/data/library_storage.dart';
 import 'package:wazapp/features/library/data/media_probe.dart';
+import 'package:wazapp/features/private_folder/data/device_auth_service.dart';
+import 'package:wazapp/features/private_folder/presentation/private_providers.dart';
 import 'package:wazapp/features/video_editor/data/video_encoder.dart';
 
 import 'fakes.dart';
+
+/// Scriptable device authentication.
+class FakeAuth implements DeviceAuthService {
+  FakeAuth({this.availabilityValue = AuthAvailability.available, List<AuthOutcome>? outcomes})
+      : outcomes = outcomes ?? [AuthOutcome.success];
+
+  AuthAvailability availabilityValue;
+
+  /// Outcomes returned by successive prompts (the last one repeats).
+  final List<AuthOutcome> outcomes;
+  final List<String> prompts = [];
+
+  @override
+  Future<AuthAvailability> availability() async => availabilityValue;
+
+  @override
+  Future<AuthOutcome> authenticate(String reason) async {
+    prompts.add(reason);
+    final i = prompts.length - 1;
+    return outcomes[i < outcomes.length ? i : outcomes.length - 1];
+  }
+}
 
 class FakeOnboarding implements OnboardingService {
   FakeOnboarding({this.completed = false});
@@ -39,7 +63,7 @@ final bool _driftQuiet = () {
 
 class Harness {
   Harness._(this.tmp, this.sourceDir, this.db, this.storage, this.access, this.onboarding, this.realProbe,
-      this.probe, this.encoder);
+      this.probe, this.encoder, this.auth);
 
   /// Use the real image/video decoder instead of the fake probe (for export tests).
   final bool realProbe;
@@ -47,6 +71,9 @@ class Harness {
   /// Optional probe / video encoder overrides (video editor tests).
   final MediaProbe? probe;
   final VideoEncoder? encoder;
+
+  /// Device authentication fake (Private Folder tests).
+  final DeviceAuthService? auth;
 
   final Directory tmp;
   final Directory sourceDir;
@@ -62,6 +89,7 @@ class Harness {
     bool realProbe = false,
     MediaProbe? probe,
     VideoEncoder? encoder,
+    DeviceAuthService? auth,
   }) async {
     // Real file I/O must run outside the fake-async zone of testWidgets.
     final h = await tester.runAsync(() async {
@@ -83,6 +111,7 @@ class Harness {
       realProbe,
       probe,
       encoder,
+      auth,
     );
   }
 
@@ -93,6 +122,7 @@ class Harness {
         mediaToolsProvider.overrideWithValue(access),
         mediaProbeProvider.overrideWithValue(probe ?? (realProbe ? const FlutterMediaProbe() : FakeProbe())),
         if (encoder != null) videoEncoderProvider.overrideWithValue(encoder!),
+        deviceAuthServiceProvider.overrideWithValue(auth ?? FakeAuth()),
         onboardingServiceProvider.overrideWithValue(onboarding),
       ];
 

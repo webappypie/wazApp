@@ -6,6 +6,8 @@
 	<true/>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
+	<key>NSFaceIDUsageDescription</key>
+	<string>WazApp uses Face ID to unlock your Private Folder if you turn the lock on.</string>
 	<key>CFBundleDisplayName</key>
 	<string>WazApp</string>
 	<key>CFBundleExecutable</key>

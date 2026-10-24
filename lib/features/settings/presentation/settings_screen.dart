@@ -2,12 +2,16 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../core/design/tokens.dart';
 import '../../../core/di/providers.dart';
 import '../../../core/error/app_error.dart';
 import '../../../core/format.dart';
+import '../../../core/router/app_router.dart';
 import '../../library/presentation/library_providers.dart';
+import '../../private_folder/data/device_auth_service.dart';
+import '../../private_folder/presentation/private_providers.dart';
 import '../../status/domain/status_models.dart';
 import '../../status/presentation/status_providers.dart';
 
@@ -49,7 +53,16 @@ class SettingsScreen extends ConsumerWidget {
             const _Header('Status folders'),
             const _StatusFolders(),
           ],
+          const _Header('Private Folder'),
+          const _PrivateLockTile(),
           const _Header('Storage'),
+          ListTile(
+            leading: const Icon(Icons.cleaning_services_outlined),
+            title: const Text('Storage Manager'),
+            subtitle: const Text('See what WazApp stores, find large files and duplicates'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => context.push(AppRoutes.storage),
+          ),
           ListTile(
             leading: const Icon(Icons.sd_storage_outlined),
             title: const Text('WazApp library'),
@@ -89,6 +102,62 @@ class SettingsScreen extends ConsumerWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _PrivateLockTile extends ConsumerStatefulWidget {
+  const _PrivateLockTile();
+
+  @override
+  ConsumerState<_PrivateLockTile> createState() => _PrivateLockTileState();
+}
+
+class _PrivateLockTileState extends ConsumerState<_PrivateLockTile> {
+  bool _busy = false;
+
+  Future<void> _toggle(bool want) async {
+    setState(() => _busy = true);
+    final notifier = ref.read(privateLockSettingProvider.notifier);
+    final r = want ? await notifier.enable() : await notifier.disable();
+    if (!mounted) return;
+    setState(() => _busy = false);
+    final msg = switch (r) {
+      ToggleResult.changed => want ? 'Private Folder lock is on' : 'Private Folder lock is off',
+      ToggleResult.notConfirmed => 'Not changed. Authentication was not completed.',
+      ToggleResult.deviceHasNoLock =>
+        'Set up a screen lock (PIN, pattern, password or biometrics) in your phone settings first.',
+    };
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final enabled = ref.watch(privateLockSettingProvider).value ?? false;
+    final availability = ref.watch(deviceAuthAvailabilityProvider).value;
+    final canUse = availability == AuthAvailability.available;
+    return Column(
+      children: [
+        SwitchListTile(
+          secondary: const Icon(Icons.lock_outline),
+          title: const Text('Require device authentication'),
+          subtitle: Text(
+            canUse || enabled
+                ? 'Ask for your fingerprint, face, PIN, pattern or password to open the Private Folder, and lock it again when you leave the app.'
+                : 'Your phone has no screen lock set up, so the Private Folder cannot be locked yet.',
+          ),
+          value: enabled,
+          onChanged: _busy || (!canUse && !enabled) ? null : _toggle,
+        ),
+        const Padding(
+          padding: EdgeInsets.symmetric(horizontal: AppSpacing.md),
+          child: Text(
+            'The Private Folder hides items from Saved and storage lists. Files are kept in private app storage, '
+            'but they are not encrypted, and they are deleted if you uninstall WazApp or clear its data.',
+            style: AppTextStyles.bodySmall,
+          ),
+        ),
+      ],
     );
   }
 }

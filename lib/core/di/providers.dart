@@ -15,6 +15,7 @@ import '../../features/editor/data/photo_export_service.dart';
 import '../../features/library/data/library_service.dart';
 import '../../features/library/data/library_storage.dart';
 import '../../features/library/data/media_probe.dart';
+import '../../features/storage_manager/data/storage_service.dart';
 import '../../features/video_editor/data/video_encoder.dart';
 import '../../features/video_editor/data/video_export_service.dart';
 import '../../features/status/data/status_access_service.dart';
@@ -76,6 +77,15 @@ final exportTempDirProvider = Provider<Directory>(
 
 final photoExportServiceProvider = Provider<PhotoExportService>(
   (ref) => PhotoExportService(
+    library: ref.watch(libraryServiceProvider),
+    tempDir: ref.watch(exportTempDirProvider),
+  ),
+);
+
+final storageServiceProvider = Provider<StorageService>(
+  (ref) => StorageService(
+    db: ref.watch(appDatabaseProvider),
+    storage: ref.watch(libraryStorageProvider),
     library: ref.watch(libraryServiceProvider),
     tempDir: ref.watch(exportTempDirProvider),
   ),

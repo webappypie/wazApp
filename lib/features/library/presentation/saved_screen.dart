@@ -173,6 +173,9 @@ class _SavedScreenState extends ConsumerState<SavedScreen> {
           onSelected: (v) async {
             if (v == 'gallery') {
               await exportFlow(context, ref, items);
+            } else if (v == 'private') {
+              final r = await moveToPrivateFlow(context, ref, _selected.toList());
+              if (r != null && mounted) setState(_selected.clear);
             } else if (v == 'delete') {
               final r = await deleteFlow(context, ref, _selected.toList());
               if (r != null && mounted) setState(_selected.clear);
@@ -180,6 +183,7 @@ class _SavedScreenState extends ConsumerState<SavedScreen> {
           },
           itemBuilder: (_) => [
             if (supportsGallery) const PopupMenuItem(value: 'gallery', child: Text('Save to gallery')),
+            const PopupMenuItem(value: 'private', child: Text('Move to Private Folder')),
             const PopupMenuItem(value: 'delete', child: Text('Delete…')),
           ],
         ),

@@ -304,6 +304,32 @@ Future<DeleteResult?> deleteFlow(BuildContext context, WidgetRef ref, List<Strin
   return result;
 }
 
+/// Moves items into the Private Folder (hidden from Saved) and reports the real outcome.
+Future<PrivacyMoveResult?> moveToPrivateFlow(BuildContext context, WidgetRef ref, List<String> ids) async {
+  if (ids.isEmpty) return null;
+  final r = await ref.read(libraryServiceProvider).moveToPrivate(ids);
+  if (!context.mounted) return r;
+  if (r.failedIds.isEmpty) {
+    _snack(context, r.moved == 1 ? 'Moved to your Private Folder' : 'Moved ${r.moved} items to your Private Folder');
+  } else {
+    _snack(context, 'Moved ${r.moved}; ${r.failedIds.length} could not be moved and were left where they are');
+  }
+  return r;
+}
+
+/// Returns items from the Private Folder to Saved.
+Future<PrivacyMoveResult?> restoreFromPrivateFlow(BuildContext context, WidgetRef ref, List<String> ids) async {
+  if (ids.isEmpty) return null;
+  final r = await ref.read(libraryServiceProvider).restoreFromPrivate(ids);
+  if (!context.mounted) return r;
+  if (r.failedIds.isEmpty) {
+    _snack(context, r.moved == 1 ? 'Moved back to Saved' : 'Moved ${r.moved} items back to Saved');
+  } else {
+    _snack(context, 'Moved ${r.moved}; ${r.failedIds.length} could not be moved');
+  }
+  return r;
+}
+
 Future<void> shareMedia(BuildContext context, List<SavedMedia> items) async {
   final existing = [for (final m in items) if (await File(m.path).exists()) m];
   if (!context.mounted) return;

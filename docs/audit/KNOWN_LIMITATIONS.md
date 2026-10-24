@@ -45,5 +45,15 @@
 - L16. Crop/trim handles are touch-driven and were exercised only with simulated gestures in widget tests.
 - E7. The Android emulator and test clips generated on the host with a bundled ffmpeg (dev tool, not shipped) were used for verification; no user media was used.
 
+## Phase 4 additions
+- L17. **The Private Folder is not encrypted.** It hides items and can require device authentication; anyone with root/forensic access, a backup extractor, or an unlocked phone with the lock switched off can read the files. They are deleted on uninstall/clear data. The UI says so in three places.
+- L18. The device lock is a screen gate. There is no screenshot/recents blocking (`FLAG_SECURE`) yet, and a screen recording while the folder is open would capture its contents.
+- L19. Authentication was exercised on an **emulator** with a PIN (success path with PIN entry, dismissal, and no-screen-lock behaviour). Fingerprint/face prompts, OEM biometric UIs and iOS Face ID/Touch ID are untested.
+- L20. If the lock is on but the phone no longer has any screen lock, the folder opens with a red "Not protected right now" banner (deliberate: never lock users out of their own files).
+- L21. Private items cannot be edited (the copy would land in the normal library); sharing and "save a copy to gallery" remain explicit actions and leave a copy outside WazApp.
+- L22. Storage Manager reports only WazApp's own storage (not device free space, WhatsApp, or the gallery). Look-alike detection works for photos only (videos match only when byte-identical); the 64-bit fingerprint can miss heavy edits and can occasionally group two similar photos, which is why nothing is selected for you without a click and every deletion is confirmed.
+- L23. Duplicate scans hash files in a background isolate; on a very large library the first scan can take a while (hashes are cached afterwards). Not measured on a phone.
+- L24. A saved status that was moved to the Private Folder still counts as "already saved" on the Home grid (prevents re-saving a second copy).
+
 ## Not yet verified (nothing has been verified on a device in this audit)
 All runtime behaviour; only static analysis and unit/widget tests were run on the host (see `BASELINE_AUDIT.md`).

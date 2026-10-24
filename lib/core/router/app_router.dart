@@ -1,8 +1,7 @@
 // lib/core/router/app_router.dart
 //
-// go_router setup: splash, onboarding, a three-tab shell (Home / Saved / Settings)
-// and full-screen viewers. Tabs for features that do not exist yet (Create,
-// Private) are added only when those features ship - no placeholder screens.
+// go_router setup: splash, onboarding, a five-tab shell (Home / Saved / Create /
+// Private / Settings) and full-screen viewers and editors.
 
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -12,9 +11,11 @@ import '../../features/editor/presentation/photo_editor_screen.dart';
 import '../../features/library/presentation/saved_screen.dart';
 import '../../features/library/presentation/viewer_screen.dart';
 import '../../features/onboarding/presentation/onboarding_screen.dart';
+import '../../features/private_folder/presentation/private_screen.dart';
 import '../../features/onboarding/presentation/splash_screen.dart';
 import '../../features/settings/presentation/settings_screen.dart';
 import '../../features/status/domain/status_models.dart';
+import '../../features/storage_manager/presentation/storage_screen.dart';
 import '../../features/status/presentation/home_screen.dart';
 import '../../features/status/presentation/status_preview_screen.dart';
 import '../../features/video_editor/presentation/video_editor_screen.dart';
@@ -34,6 +35,8 @@ class AppRoutes {
   static const videoEditor = '/video-editor';
   static const statusMaker = '/status-maker';
   static const create = '/create';
+  static const private = '/private';
+  static const storage = '/storage';
 }
 
 GoRouter buildRouter() => GoRouter(
@@ -73,6 +76,7 @@ GoRouter buildRouter() => GoRouter(
             return VideoEditorScreen(mediaId: id);
           },
         ),
+        GoRoute(path: AppRoutes.storage, builder: (_, _) => const StorageScreen()),
         GoRoute(path: AppRoutes.statusMaker, builder: (_, _) => const StatusMakerScreen()),
         StatefulShellRoute.indexedStack(
           builder: (context, state, shell) => _AppShell(shell: shell),
@@ -85,6 +89,9 @@ GoRouter buildRouter() => GoRouter(
             ]),
             StatefulShellBranch(routes: [
               GoRoute(path: AppRoutes.create, builder: (_, _) => const CreateScreen()),
+            ]),
+            StatefulShellBranch(routes: [
+              GoRoute(path: AppRoutes.private, builder: (_, _) => const PrivateScreen()),
             ]),
             StatefulShellBranch(routes: [
               GoRoute(path: AppRoutes.settings, builder: (_, _) => const SettingsScreen()),
@@ -136,6 +143,11 @@ class _AppShell extends StatelessWidget {
             icon: Icon(Icons.auto_awesome_outlined),
             selectedIcon: Icon(Icons.auto_awesome),
             label: 'Create',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.lock_outline),
+            selectedIcon: Icon(Icons.lock),
+            label: 'Private',
           ),
           NavigationDestination(
             icon: Icon(Icons.settings_outlined),

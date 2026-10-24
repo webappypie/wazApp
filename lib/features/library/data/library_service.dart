@@ -57,6 +57,12 @@ class ImportBatchResult {
   final List<ItemFailure<ImportCandidate>> failed;
 }
 
+class PrivacyMoveResult {
+  const PrivacyMoveResult({required this.moved, required this.failedIds});
+  final int moved;
+  final List<String> failedIds;
+}
+
 class DeleteResult {
   const DeleteResult({required this.deleted, required this.failedIds});
   final int deleted;
@@ -356,6 +362,60 @@ class LibraryService {
     return DeleteResult(deleted: deleted, failedIds: failed);
   }
 
+  /// Moves items into the Private Folder (hidden from the library, separate directory).
+  /// Atomic per item: file(s) are renamed, then the row is updated in one write; if the row
+  /// update fails the files are renamed back, so path and flag can never disagree.
+  Future<PrivacyMoveResult> moveToPrivate(Iterable<String> ids) => _setPrivacy(ids, toPrivate: true);
+
+  /// Returns items from the Private Folder to the normal library.
+  Future<PrivacyMoveResult> restoreFromPrivate(Iterable<String> ids) => _setPrivacy(ids, toPrivate: false);
+
+  Future<PrivacyMoveResult> _setPrivacy(Iterable<String> ids, {required bool toPrivate}) async {
+    await _storage.ensureCreated();
+    var moved = 0;
+    final failed = <String>[];
+    for (final id in ids.toList()) {
+      final row = await _db.findById(id);
+      if (row == null || row.isPrivate == toPrivate) continue;
+      final ext = p.extension(row.path).replaceFirst('.', '');
+      final newPath = toPrivate ? _storage.privatePath(id, ext) : _storage.mediaPath(id, ext);
+      final oldThumb = row.thumbnailPath;
+      final newThumb = oldThumb == null ? null : (toPrivate ? _storage.privateThumbPath(id) : _storage.thumbPath(id));
+      var mediaMoved = false;
+      var thumbMoved = false;
+      try {
+        await File(row.path).rename(newPath);
+        mediaMoved = true;
+        if (oldThumb != null && newThumb != null && await File(oldThumb).exists()) {
+          await File(oldThumb).rename(newThumb);
+          thumbMoved = true;
+        }
+        await _db.setPrivacy(
+          id,
+          isPrivate: toPrivate,
+          path: newPath,
+          thumbnailPath: (thumbMoved || oldThumb == null) ? newThumb : null,
+        );
+        moved++;
+      } catch (e) {
+        _log.warning('privacy move failed', e);
+        // Roll back whatever already moved.
+        if (thumbMoved) await _renameQuietly(newThumb!, oldThumb!);
+        if (mediaMoved) await _renameQuietly(newPath, row.path);
+        failed.add(id);
+      }
+    }
+    return PrivacyMoveResult(moved: moved, failedIds: failed);
+  }
+
+  Future<void> _renameQuietly(String from, String to) async {
+    try {
+      await File(from).rename(to);
+    } on FileSystemException catch (e) {
+      _log.severe('rollback rename failed', e);
+    }
+  }
+
   /// Explicit export to the public gallery (user action).
   Future<void> exportToGallery(SavedMedia media) async {
     if (!await File(media.path).exists()) {
@@ -389,13 +449,15 @@ class LibraryService {
   }
 
   Future<void> _sweepOrphanThumbnails() async {
-    if (!await _storage.thumbsDir.exists()) return;
     final known = {
       for (final r in await _db.select(_db.savedMediaTable).get())
         if (r.thumbnailPath != null) p.normalize(r.thumbnailPath!),
     };
-    await for (final e in _storage.thumbsDir.list()) {
-      if (e is File && !known.contains(p.normalize(e.path))) await _deleteQuietly(e);
+    for (final dir in [_storage.thumbsDir, _storage.privateThumbsDir]) {
+      if (!await dir.exists()) continue;
+      await for (final e in dir.list()) {
+        if (e is File && !known.contains(p.normalize(e.path))) await _deleteQuietly(e);
+      }
     }
   }
 

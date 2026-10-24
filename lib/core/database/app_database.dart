@@ -1,6 +1,8 @@
 // lib/core/database/app_database.dart
 //
-// Drift database for WazApp. Schema v1: saved_media (the local library).
+// Drift database for WazApp.
+//   v1: saved_media (the local library)
+//   v2: saved_media.content_hash + visual_hash (Storage Manager duplicate detection)
 // Bump [_kSchemaVersion] and add an onUpgrade step for every schema change.
 
 import 'dart:io';
@@ -16,7 +18,7 @@ export 'tables/saved_media_table.dart';
 
 part 'app_database.g.dart';
 
-const int _kSchemaVersion = 1;
+const int _kSchemaVersion = 2;
 
 @DriftDatabase(tables: [SavedMediaTable])
 class AppDatabase extends _$AppDatabase {
@@ -28,6 +30,12 @@ class AppDatabase extends _$AppDatabase {
   @override
   MigrationStrategy get migration => MigrationStrategy(
         onCreate: (m) => m.createAll(),
+        onUpgrade: (m, from, to) async {
+          if (from < 2) {
+            await m.addColumn(savedMediaTable, savedMediaTable.contentHash);
+            await m.addColumn(savedMediaTable, savedMediaTable.visualHash);
+          }
+        },
         beforeOpen: (details) async {
           await customStatement('PRAGMA journal_mode=WAL');
         },
@@ -44,6 +52,22 @@ class AppDatabase extends _$AppDatabase {
       ..orderBy([(t) => OrderingTerm.desc(t.savedAt)]);
     return q.watch();
   }
+
+  /// Items moved into the Private Folder, newest first.
+  Stream<List<SavedMedia>> watchPrivate() {
+    final q = select(savedMediaTable)
+      ..where((t) => t.isPrivate.equals(true))
+      ..orderBy([(t) => OrderingTerm.desc(t.savedAt)]);
+    return q.watch();
+  }
+
+  /// Every row, private or not (used by the viewer and by storage accounting).
+  Stream<List<SavedMedia>> watchAll() {
+    final q = select(savedMediaTable)..orderBy([(t) => OrderingTerm.desc(t.savedAt)]);
+    return q.watch();
+  }
+
+  Future<List<SavedMedia>> allRows() => select(savedMediaTable).get();
 
   Future<SavedMedia?> findById(String id) =>
       (select(savedMediaTable)..where((t) => t.id.equals(id))).getSingleOrNull();
@@ -71,6 +95,20 @@ class AppDatabase extends _$AppDatabase {
   Future<void> setFavourite(Iterable<String> ids, bool value) =>
       (update(savedMediaTable)..where((t) => t.id.isIn(ids)))
           .write(SavedMediaTableCompanion(isFavourite: Value(value)));
+
+  /// Moves rows between the library and the Private Folder, updating paths atomically.
+  Future<void> setPrivacy(String id, {required bool isPrivate, required String path, String? thumbnailPath}) =>
+      (update(savedMediaTable)..where((t) => t.id.equals(id))).write(SavedMediaTableCompanion(
+        isPrivate: Value(isPrivate),
+        path: Value(path),
+        thumbnailPath: Value(thumbnailPath),
+      ));
+
+  Future<void> setHashes(String id, {String? contentHash, String? visualHash}) =>
+      (update(savedMediaTable)..where((t) => t.id.equals(id))).write(SavedMediaTableCompanion(
+        contentHash: contentHash == null ? const Value.absent() : Value(contentHash),
+        visualHash: visualHash == null ? const Value.absent() : Value(visualHash),
+      ));
 
   Future<void> setThumbnail(String id, String? thumbnailPath) =>
       (update(savedMediaTable)..where((t) => t.id.equals(id)))

@@ -213,6 +213,28 @@ class $SavedMediaTableTable extends SavedMediaTable
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _contentHashMeta = const VerificationMeta(
+    'contentHash',
+  );
+  @override
+  late final GeneratedColumn<String> contentHash = GeneratedColumn<String>(
+    'content_hash',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _visualHashMeta = const VerificationMeta(
+    'visualHash',
+  );
+  @override
+  late final GeneratedColumn<String> visualHash = GeneratedColumn<String>(
+    'visual_hash',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -233,6 +255,8 @@ class $SavedMediaTableTable extends SavedMediaTable
     isPrivate,
     isEdited,
     thumbnailPath,
+    contentHash,
+    visualHash,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -373,6 +397,21 @@ class $SavedMediaTableTable extends SavedMediaTable
         ),
       );
     }
+    if (data.containsKey('content_hash')) {
+      context.handle(
+        _contentHashMeta,
+        contentHash.isAcceptableOrUnknown(
+          data['content_hash']!,
+          _contentHashMeta,
+        ),
+      );
+    }
+    if (data.containsKey('visual_hash')) {
+      context.handle(
+        _visualHashMeta,
+        visualHash.isAcceptableOrUnknown(data['visual_hash']!, _visualHashMeta),
+      );
+    }
     return context;
   }
 
@@ -454,6 +493,14 @@ class $SavedMediaTableTable extends SavedMediaTable
         DriftSqlType.string,
         data['${effectivePrefix}thumbnail_path'],
       ),
+      contentHash: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}content_hash'],
+      ),
+      visualHash: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}visual_hash'],
+      ),
     );
   }
 
@@ -503,6 +550,13 @@ class SavedMedia extends DataClass implements Insertable<SavedMedia> {
 
   /// Cached thumbnail file (JPEG) inside app storage, if generated.
   final String? thumbnailPath;
+
+  /// SHA-256 of the file bytes (hex), computed on demand by the Storage Manager. Files are never
+  /// modified in place, so a cached value stays valid for the life of the row.
+  final String? contentHash;
+
+  /// 64-bit difference hash of a photo (16 hex chars), used only to flag look-alike photos.
+  final String? visualHash;
   const SavedMedia({
     required this.id,
     required this.path,
@@ -522,6 +576,8 @@ class SavedMedia extends DataClass implements Insertable<SavedMedia> {
     required this.isPrivate,
     required this.isEdited,
     this.thumbnailPath,
+    this.contentHash,
+    this.visualHash,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -551,6 +607,12 @@ class SavedMedia extends DataClass implements Insertable<SavedMedia> {
     map['is_edited'] = Variable<bool>(isEdited);
     if (!nullToAbsent || thumbnailPath != null) {
       map['thumbnail_path'] = Variable<String>(thumbnailPath);
+    }
+    if (!nullToAbsent || contentHash != null) {
+      map['content_hash'] = Variable<String>(contentHash);
+    }
+    if (!nullToAbsent || visualHash != null) {
+      map['visual_hash'] = Variable<String>(visualHash);
     }
     return map;
   }
@@ -583,6 +645,12 @@ class SavedMedia extends DataClass implements Insertable<SavedMedia> {
       thumbnailPath: thumbnailPath == null && nullToAbsent
           ? const Value.absent()
           : Value(thumbnailPath),
+      contentHash: contentHash == null && nullToAbsent
+          ? const Value.absent()
+          : Value(contentHash),
+      visualHash: visualHash == null && nullToAbsent
+          ? const Value.absent()
+          : Value(visualHash),
     );
   }
 
@@ -610,6 +678,8 @@ class SavedMedia extends DataClass implements Insertable<SavedMedia> {
       isPrivate: serializer.fromJson<bool>(json['isPrivate']),
       isEdited: serializer.fromJson<bool>(json['isEdited']),
       thumbnailPath: serializer.fromJson<String?>(json['thumbnailPath']),
+      contentHash: serializer.fromJson<String?>(json['contentHash']),
+      visualHash: serializer.fromJson<String?>(json['visualHash']),
     );
   }
   @override
@@ -634,6 +704,8 @@ class SavedMedia extends DataClass implements Insertable<SavedMedia> {
       'isPrivate': serializer.toJson<bool>(isPrivate),
       'isEdited': serializer.toJson<bool>(isEdited),
       'thumbnailPath': serializer.toJson<String?>(thumbnailPath),
+      'contentHash': serializer.toJson<String?>(contentHash),
+      'visualHash': serializer.toJson<String?>(visualHash),
     };
   }
 
@@ -656,6 +728,8 @@ class SavedMedia extends DataClass implements Insertable<SavedMedia> {
     bool? isPrivate,
     bool? isEdited,
     Value<String?> thumbnailPath = const Value.absent(),
+    Value<String?> contentHash = const Value.absent(),
+    Value<String?> visualHash = const Value.absent(),
   }) => SavedMedia(
     id: id ?? this.id,
     path: path ?? this.path,
@@ -677,6 +751,8 @@ class SavedMedia extends DataClass implements Insertable<SavedMedia> {
     thumbnailPath: thumbnailPath.present
         ? thumbnailPath.value
         : this.thumbnailPath,
+    contentHash: contentHash.present ? contentHash.value : this.contentHash,
+    visualHash: visualHash.present ? visualHash.value : this.visualHash,
   );
   SavedMedia copyWithCompanion(SavedMediaTableCompanion data) {
     return SavedMedia(
@@ -708,6 +784,12 @@ class SavedMedia extends DataClass implements Insertable<SavedMedia> {
       thumbnailPath: data.thumbnailPath.present
           ? data.thumbnailPath.value
           : this.thumbnailPath,
+      contentHash: data.contentHash.present
+          ? data.contentHash.value
+          : this.contentHash,
+      visualHash: data.visualHash.present
+          ? data.visualHash.value
+          : this.visualHash,
     );
   }
 
@@ -731,7 +813,9 @@ class SavedMedia extends DataClass implements Insertable<SavedMedia> {
           ..write('isFavourite: $isFavourite, ')
           ..write('isPrivate: $isPrivate, ')
           ..write('isEdited: $isEdited, ')
-          ..write('thumbnailPath: $thumbnailPath')
+          ..write('thumbnailPath: $thumbnailPath, ')
+          ..write('contentHash: $contentHash, ')
+          ..write('visualHash: $visualHash')
           ..write(')'))
         .toString();
   }
@@ -756,6 +840,8 @@ class SavedMedia extends DataClass implements Insertable<SavedMedia> {
     isPrivate,
     isEdited,
     thumbnailPath,
+    contentHash,
+    visualHash,
   );
   @override
   bool operator ==(Object other) =>
@@ -778,7 +864,9 @@ class SavedMedia extends DataClass implements Insertable<SavedMedia> {
           other.isFavourite == this.isFavourite &&
           other.isPrivate == this.isPrivate &&
           other.isEdited == this.isEdited &&
-          other.thumbnailPath == this.thumbnailPath);
+          other.thumbnailPath == this.thumbnailPath &&
+          other.contentHash == this.contentHash &&
+          other.visualHash == this.visualHash);
 }
 
 class SavedMediaTableCompanion extends UpdateCompanion<SavedMedia> {
@@ -800,6 +888,8 @@ class SavedMediaTableCompanion extends UpdateCompanion<SavedMedia> {
   final Value<bool> isPrivate;
   final Value<bool> isEdited;
   final Value<String?> thumbnailPath;
+  final Value<String?> contentHash;
+  final Value<String?> visualHash;
   final Value<int> rowid;
   const SavedMediaTableCompanion({
     this.id = const Value.absent(),
@@ -820,6 +910,8 @@ class SavedMediaTableCompanion extends UpdateCompanion<SavedMedia> {
     this.isPrivate = const Value.absent(),
     this.isEdited = const Value.absent(),
     this.thumbnailPath = const Value.absent(),
+    this.contentHash = const Value.absent(),
+    this.visualHash = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   SavedMediaTableCompanion.insert({
@@ -841,6 +933,8 @@ class SavedMediaTableCompanion extends UpdateCompanion<SavedMedia> {
     this.isPrivate = const Value.absent(),
     this.isEdited = const Value.absent(),
     this.thumbnailPath = const Value.absent(),
+    this.contentHash = const Value.absent(),
+    this.visualHash = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
        path = Value(path),
@@ -869,6 +963,8 @@ class SavedMediaTableCompanion extends UpdateCompanion<SavedMedia> {
     Expression<bool>? isPrivate,
     Expression<bool>? isEdited,
     Expression<String>? thumbnailPath,
+    Expression<String>? contentHash,
+    Expression<String>? visualHash,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -890,6 +986,8 @@ class SavedMediaTableCompanion extends UpdateCompanion<SavedMedia> {
       if (isPrivate != null) 'is_private': isPrivate,
       if (isEdited != null) 'is_edited': isEdited,
       if (thumbnailPath != null) 'thumbnail_path': thumbnailPath,
+      if (contentHash != null) 'content_hash': contentHash,
+      if (visualHash != null) 'visual_hash': visualHash,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -913,6 +1011,8 @@ class SavedMediaTableCompanion extends UpdateCompanion<SavedMedia> {
     Value<bool>? isPrivate,
     Value<bool>? isEdited,
     Value<String?>? thumbnailPath,
+    Value<String?>? contentHash,
+    Value<String?>? visualHash,
     Value<int>? rowid,
   }) {
     return SavedMediaTableCompanion(
@@ -934,6 +1034,8 @@ class SavedMediaTableCompanion extends UpdateCompanion<SavedMedia> {
       isPrivate: isPrivate ?? this.isPrivate,
       isEdited: isEdited ?? this.isEdited,
       thumbnailPath: thumbnailPath ?? this.thumbnailPath,
+      contentHash: contentHash ?? this.contentHash,
+      visualHash: visualHash ?? this.visualHash,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -995,6 +1097,12 @@ class SavedMediaTableCompanion extends UpdateCompanion<SavedMedia> {
     if (thumbnailPath.present) {
       map['thumbnail_path'] = Variable<String>(thumbnailPath.value);
     }
+    if (contentHash.present) {
+      map['content_hash'] = Variable<String>(contentHash.value);
+    }
+    if (visualHash.present) {
+      map['visual_hash'] = Variable<String>(visualHash.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -1022,6 +1130,8 @@ class SavedMediaTableCompanion extends UpdateCompanion<SavedMedia> {
           ..write('isPrivate: $isPrivate, ')
           ..write('isEdited: $isEdited, ')
           ..write('thumbnailPath: $thumbnailPath, ')
+          ..write('contentHash: $contentHash, ')
+          ..write('visualHash: $visualHash, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -1061,6 +1171,8 @@ typedef $$SavedMediaTableTableCreateCompanionBuilder =
       Value<bool> isPrivate,
       Value<bool> isEdited,
       Value<String?> thumbnailPath,
+      Value<String?> contentHash,
+      Value<String?> visualHash,
       Value<int> rowid,
     });
 typedef $$SavedMediaTableTableUpdateCompanionBuilder =
@@ -1083,6 +1195,8 @@ typedef $$SavedMediaTableTableUpdateCompanionBuilder =
       Value<bool> isPrivate,
       Value<bool> isEdited,
       Value<String?> thumbnailPath,
+      Value<String?> contentHash,
+      Value<String?> visualHash,
       Value<int> rowid,
     });
 
@@ -1182,6 +1296,16 @@ class $$SavedMediaTableTableFilterComposer
 
   ColumnFilters<String> get thumbnailPath => $composableBuilder(
     column: $table.thumbnailPath,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get contentHash => $composableBuilder(
+    column: $table.contentHash,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get visualHash => $composableBuilder(
+    column: $table.visualHash,
     builder: (column) => ColumnFilters(column),
   );
 }
@@ -1284,6 +1408,16 @@ class $$SavedMediaTableTableOrderingComposer
     column: $table.thumbnailPath,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<String> get contentHash => $composableBuilder(
+    column: $table.contentHash,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get visualHash => $composableBuilder(
+    column: $table.visualHash,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$SavedMediaTableTableAnnotationComposer
@@ -1358,6 +1492,16 @@ class $$SavedMediaTableTableAnnotationComposer
     column: $table.thumbnailPath,
     builder: (column) => column,
   );
+
+  GeneratedColumn<String> get contentHash => $composableBuilder(
+    column: $table.contentHash,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get visualHash => $composableBuilder(
+    column: $table.visualHash,
+    builder: (column) => column,
+  );
 }
 
 class $$SavedMediaTableTableTableManager
@@ -1411,6 +1555,8 @@ class $$SavedMediaTableTableTableManager
                 Value<bool> isPrivate = const Value.absent(),
                 Value<bool> isEdited = const Value.absent(),
                 Value<String?> thumbnailPath = const Value.absent(),
+                Value<String?> contentHash = const Value.absent(),
+                Value<String?> visualHash = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => SavedMediaTableCompanion(
                 id: id,
@@ -1431,6 +1577,8 @@ class $$SavedMediaTableTableTableManager
                 isPrivate: isPrivate,
                 isEdited: isEdited,
                 thumbnailPath: thumbnailPath,
+                contentHash: contentHash,
+                visualHash: visualHash,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -1453,6 +1601,8 @@ class $$SavedMediaTableTableTableManager
                 Value<bool> isPrivate = const Value.absent(),
                 Value<bool> isEdited = const Value.absent(),
                 Value<String?> thumbnailPath = const Value.absent(),
+                Value<String?> contentHash = const Value.absent(),
+                Value<String?> visualHash = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => SavedMediaTableCompanion.insert(
                 id: id,
@@ -1473,6 +1623,8 @@ class $$SavedMediaTableTableTableManager
                 isPrivate: isPrivate,
                 isEdited: isEdited,
                 thumbnailPath: thumbnailPath,
+                contentHash: contentHash,
+                visualHash: visualHash,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0
