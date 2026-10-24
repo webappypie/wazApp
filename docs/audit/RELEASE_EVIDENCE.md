@@ -2,6 +2,20 @@
 
 Only commands that were actually run are listed. Host: Windows 11, Flutter 3.47.1 / Dart 3.13.1, Android SDK 36.1.0. Branch `feature/wazapp`.
 
+## Phase 5 (end state, 2026-10-25)
+
+| Check | Command | Result |
+|---|---|---|
+| Static analysis | `flutter analyze` | **No issues found** |
+| Automated tests (host) | `flutter test` | **248 passed, 0 failed, 1 skipped** (+25 vs Phase 4: client 14, gate 11; the skipped test is the opt-in live check) |
+| Live endpoint | opt-in `live_service_status_test` (read-only GET, no key) | HTTP 200; parsed as `source: server, enabled: true` |
+| Release / R8 build | `flutter build apk --release --android-project-arg=allowDebugSigning=true` | **OK, 65.1 MB**; INTERNET and USE_BIOMETRIC present in the merged manifest; output is debug-signed (not distributable) |
+| Network path on a device / emulator | - | **not run** |
+| Physical phone | - | not retried (E5 open) |
+
+Proven by tests: contract parsing and documented defaults, fail-open matrix (timeout, offline, 3xx/4xx/5xx, bad JSON, missing data), key redaction in logs and `toString`, URL scheme safety, non-blocking cold start, inert UI and consumed Android back while blocked, resume re-check, automatic dismissal on restoration, onboarding covered by the notice.
+Not proven: behaviour on a real network stack/TLS on a phone, OEM back-gesture handling, `url_launcher` opening a real browser, iOS.
+
 ## Phase 4 (end state, 2026-10-25)
 
 | Check | Command | Result |

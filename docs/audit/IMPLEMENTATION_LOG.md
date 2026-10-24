@@ -91,3 +91,19 @@ See `RELEASE_EVIDENCE.md` (Phase 3 section) for exactly what ran on the emulator
 
 ### Environment
 Emulator `wazapp_test` (Android 16) was used for the authentication checks. A PIN was set with `adb shell locksettings set-pin` and typed by a host helper via `input keyevent`; PIN screens are secure windows (screenshots are black), so those steps were verified by test outcomes, not by eye. One run failed because Android killed the app start (`failed to attach` while Gradle was busy); a retry with the cached build passed.
+
+## Phase 5 - WAPCentral service control (partial by owner instruction)
+
+### Delivered
+- `lib/integrations/wapcentral/`: `WapCentralConfig` (public base URL and app ID, optional key via `--dart-define=WAP_APP_KEY`, redacted `toString`), `ServiceControlClient` (REST GET per guide section 9, never throws, fails open with a reason-only log line), `ServiceGate` (full-app notice in `MaterialApp.builder`, post-first-frame check, resume re-check, overlapping checks collapse), `UrlOpener` abstraction.
+- `WazApp.didPopRoute` consumes Android back while blocked; `INTERNET` permission and `https` VIEW query added; Settings > Privacy > "Service check" discloses what is sent.
+- ADR-007 and `WAPCENTRAL_INTEGRATION_STATUS.md` (implemented items, deviations from the guide's snippet, every blocker with the exact owner action).
+
+### Deliberately not done (nothing guessed)
+SDK integration (B1), ads config/tracking, notification registration/feed, promotions, Firebase/FCM, AdMob, Remove Ads billing: the supplied material has no SDK source, no schemas for those endpoints and no billing product ID.
+
+### Bugs found by the tests
+1. `Uri.parse('https://')` has an empty host and passed the scheme check: destinations now need a non-empty host.
+2. A `PopScope` in the gate had no effect (the gate is above the Navigator; back at the root returned false): back is now consumed in `WazApp.didPopRoute`.
+3. A blank `destinationUrl` falls back to the guide's default link (test expectation corrected, product behaviour as the guide states).
+4. The Settings list got longer, so the onboarding privacy-text test now scrolls to each text instead of one fixed drag.

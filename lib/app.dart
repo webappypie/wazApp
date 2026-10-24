@@ -10,6 +10,7 @@ import 'core/design/tokens.dart';
 import 'core/di/providers.dart';
 import 'core/router/app_router.dart';
 import 'features/private_folder/presentation/private_providers.dart';
+import 'integrations/wapcentral/presentation/service_gate.dart';
 
 class WazApp extends ConsumerStatefulWidget {
   const WazApp({super.key});
@@ -26,6 +27,12 @@ class _WazAppState extends ConsumerState<WazApp> with WidgetsBindingObserver {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
   }
+
+  /// While WAPCentral has paused the service the notice cannot be dismissed, and Android back must neither close
+  /// the app nor navigate the screens hidden beneath it. This observer is registered before the Navigator's own
+  /// (WazApp is an ancestor of it), so it sees the back press first.
+  @override
+  Future<bool> didPopRoute() async => !ref.read(serviceStatusProvider).enabled;
 
   /// The Private Folder re-locks whenever WazApp leaves the foreground.
   @override
@@ -49,6 +56,8 @@ class _WazAppState extends ConsumerState<WazApp> with WidgetsBindingObserver {
       title: 'WazApp',
       debugShowCheckedModeBanner: false,
       routerConfig: _router,
+      // WAPCentral remote service control: covers every route when the service is paused.
+      builder: (context, child) => ServiceGate(child: child ?? const SizedBox.shrink()),
       theme: AppTheme.light(),
       darkTheme: AppTheme.dark(),
       themeMode: themeMode,

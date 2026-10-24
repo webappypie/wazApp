@@ -1,0 +1,13 @@
+# ADR-007 — WAPCentral: implement only the fully documented service-control contract
+
+- **Status:** accepted (Phase 5, partial by owner instruction: "only what is possible without the missing SDKs ... implement nothing by guessing").
+- **Context:** The WAPCentral guide mandates four `wap_*` SDKs that are not obtainable (not on pub.dev, not in the repo) and documents request/response schemas only for the *service-status* endpoint. Ads, notifications, promotions and billing depend on SDK APIs, endpoint payloads or store product IDs that do not exist in the supplied material.
+- **Decision:**
+  - Implement the service-status check as a plain REST client over `package:http` (the guide's own reference implementation uses it) behind a small adapter: `WapCentralConfig` (public IDs + optional key from `--dart-define`), `ServiceControlClient` (parse, fail-open, redacted logging), `ServiceGate` (full-app notice) and a `UrlOpener` abstraction.
+  - The key is never in source or logs; the endpoint is public so no key is required today. Only the app ID is compiled in (the guide calls it public).
+  - Fail open on every failure; unblock automatically; consume Android back while blocked; open only http/https destination links.
+  - Do **not** add Firebase/FCM, AdMob, billing or promotion dependencies, permissions or placeholder UI. Document each blocker with the exact owner action in `docs/audit/WAPCENTRAL_INTEGRATION_STATUS.md`.
+- **Observed deviation of the live service from the guide's example:** with the service enabled, `data` holds only `enabled` and `updatedAt` as a Firestore-style `{_seconds,_nanoseconds}` object; all other fields are optional in our parser and `updatedAt` is ignored.
+- **Alternatives rejected:** guessing SDK-like APIs or JSON schemas (violates the guide's "do not invent"); embedding the guide's `defaultValue` key (secret in git and in the APK); awaiting the check before `runApp` (breaks local-first); adding Firebase "just in case" (permissions and data collection without a working feature).
+- **Consequences:** airplane mode (or a blocked network) lifts the notice - that is what the guide specifies, and it means the control cannot be enforced against a user who deliberately blocks the request. Ads, notifications, promotions and Remove Ads are **not implemented**; no control for them exists in the UI.
+- **Tests:** `service_control_client_test` (contract, defaults, fail-open matrix, URL safety, key redaction), `service_gate_test` (cold start non-blocking, inertness, back handling, button, resume re-check, restoration), opt-in `live_service_status_test` (real gateway).

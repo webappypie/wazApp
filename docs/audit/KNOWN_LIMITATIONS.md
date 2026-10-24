@@ -55,5 +55,13 @@
 - L23. Duplicate scans hash files in a background isolate; on a very large library the first scan can take a while (hashes are cached afterwards). Not measured on a phone.
 - L24. A saved status that was moved to the Private Folder still counts as "already saved" on the Home grid (prevents re-saving a second copy).
 
+## Phase 5 additions
+- L25. **Service control fails open by design** (guide section 9): offline, airplane mode, a blocked host or a deliberately dropped request all lift the notice. It cannot be enforced against a user who blocks the request.
+- L26. The notice appears just after the first frame (the check does not delay launch). On a normal network that is well under a second; on a slow one the app is usable until the answer arrives.
+- L27. The live endpoint is public; the platform key is **not required** for it and is not a secret once compiled into an APK. It is never in source or logs; pass it only with `--dart-define=WAP_APP_KEY=...` when ads/notifications need it.
+- L28. The Android network path (INTERNET permission, external-browser launch) was verified by a release build and host tests, **not on a device or emulator**.
+- L29. The live payload differs from the guide's example (`updatedAt` is `{_seconds,_nanoseconds}`, text fields absent while enabled); the parser tolerates both. If WAPCentral changes the shape again the client fails open, never blocks.
+- L30. **Not implemented (blocked on the owner):** ads, push notifications and the in-app feed, promotions, Remove Ads billing. No dead buttons or placeholder UI exist for them. Details and exact owner actions: `WAPCENTRAL_INTEGRATION_STATUS.md` (B1, B3, B4, B7).
+
 ## Not yet verified (nothing has been verified on a device in this audit)
 All runtime behaviour; only static analysis and unit/widget tests were run on the host (see `BASELINE_AUDIT.md`).

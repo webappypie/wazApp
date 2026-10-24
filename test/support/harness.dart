@@ -19,8 +19,51 @@ import 'package:wazapp/features/library/data/media_probe.dart';
 import 'package:wazapp/features/private_folder/data/device_auth_service.dart';
 import 'package:wazapp/features/private_folder/presentation/private_providers.dart';
 import 'package:wazapp/features/video_editor/data/video_encoder.dart';
+import 'package:wazapp/integrations/wapcentral/presentation/service_gate.dart';
+import 'package:wazapp/integrations/wapcentral/service_control_client.dart';
+import 'package:wazapp/integrations/wapcentral/wapcentral_config.dart';
+import 'package:http/http.dart' as http;
+import 'package:http/testing.dart';
 
 import 'fakes.dart';
+
+/// Records links instead of launching a browser.
+class FakeUrlOpener implements UrlOpener {
+  final List<Uri> opened = [];
+  bool succeed = true;
+
+  @override
+  Future<bool> open(Uri uri) async {
+    opened.add(uri);
+    return succeed;
+  }
+}
+
+/// A WAPCentral client whose answers the test controls; defaults to "service enabled".
+class ScriptedService {
+  ScriptedService() {
+    client = ServiceControlClient(config: const WapCentralConfig(), httpClient: MockClient((r) async {
+      requests++;
+      return responder();
+    }));
+  }
+
+  late final ServiceControlClient client;
+  int requests = 0;
+  Future<http.Response> Function() responder =
+      () async => http.Response('{"success":true,"data":{"enabled":true}}', 200);
+
+  void enable() => responder = () async => http.Response('{"success":true,"data":{"enabled":true}}', 200);
+
+  void disable({String title = 'Service Notice', String message = 'We are doing maintenance.', String? url}) =>
+      responder = () async => http.Response(
+            '{"success":true,"data":{"enabled":false,"title":"$title","message":"$message",'
+            '"buttonText":"Learn More","destinationUrl":"${url ?? 'https://webappypie.com'}"}}',
+            200,
+          );
+
+  void offline() => responder = () async => throw http.ClientException('offline');
+}
 
 /// Scriptable device authentication.
 class FakeAuth implements DeviceAuthService {
@@ -63,7 +106,7 @@ final bool _driftQuiet = () {
 
 class Harness {
   Harness._(this.tmp, this.sourceDir, this.db, this.storage, this.access, this.onboarding, this.realProbe,
-      this.probe, this.encoder, this.auth);
+      this.probe, this.encoder, this.auth, this.service, this.opener);
 
   /// Use the real image/video decoder instead of the fake probe (for export tests).
   final bool realProbe;
@@ -74,6 +117,10 @@ class Harness {
 
   /// Device authentication fake (Private Folder tests).
   final DeviceAuthService? auth;
+
+  /// WAPCentral service-control fake and link opener.
+  final ScriptedService? service;
+  final FakeUrlOpener? opener;
 
   final Directory tmp;
   final Directory sourceDir;
@@ -90,6 +137,8 @@ class Harness {
     MediaProbe? probe,
     VideoEncoder? encoder,
     DeviceAuthService? auth,
+    ScriptedService? service,
+    FakeUrlOpener? opener,
   }) async {
     // Real file I/O must run outside the fake-async zone of testWidgets.
     final h = await tester.runAsync(() async {
@@ -112,6 +161,8 @@ class Harness {
       probe,
       encoder,
       auth,
+      service,
+      opener,
     );
   }
 
@@ -123,6 +174,8 @@ class Harness {
         mediaProbeProvider.overrideWithValue(probe ?? (realProbe ? const FlutterMediaProbe() : FakeProbe())),
         if (encoder != null) videoEncoderProvider.overrideWithValue(encoder!),
         deviceAuthServiceProvider.overrideWithValue(auth ?? FakeAuth()),
+        serviceControlClientProvider.overrideWithValue((service ?? ScriptedService()).client),
+        urlOpenerProvider.overrideWithValue(opener ?? FakeUrlOpener()),
         onboardingServiceProvider.overrideWithValue(onboarding),
       ];
 

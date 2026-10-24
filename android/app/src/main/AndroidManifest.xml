@@ -10,6 +10,8 @@
         MANAGE_EXTERNAL_STORAGE and READ_MEDIA_* are intentionally NOT requested.
     -->
     <uses-permission android:name="android.permission.USE_BIOMETRIC" />
+    <!-- INTERNET is used only for the WAPCentral service-status check (no media, file names or personal data are sent). -->
+    <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission
         android:name="android.permission.WRITE_EXTERNAL_STORAGE"
         android:maxSdkVersion="28" />
@@ -54,6 +56,11 @@
     <queries>
         <package android:name="com.whatsapp" />
         <package android:name="com.whatsapp.w4b" />
+        <!-- Lets the service notice open its web link in the browser (Android 11+ package visibility). -->
+        <intent>
+            <action android:name="android.intent.action.VIEW"/>
+            <data android:scheme="https"/>
+        </intent>
         <intent>
             <action android:name="android.intent.action.PROCESS_TEXT"/>
             <data android:mimeType="text/plain"/>

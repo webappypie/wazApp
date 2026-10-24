@@ -6,7 +6,9 @@
 WazApp is a local-first status saver and (planned) photo/video editor. This repository was converted in place from an earlier "WappTidy" cleaner app — see `docs/adr/ADR-001-rename-wapptidy-in-place.md`; the old docs are in `docs/legacy-wapptidy/`.
 
 ## Current status
-Phase 1 (core saver + library) is implemented for Android and scaffolded for iOS. Editors, status maker, Private Folder, Storage Manager, WAPCentral/ads/notifications and billing are **not implemented yet**. See `docs/audit/FEATURE_MATRIX.md`, `KNOWN_LIMITATIONS.md` and `RELEASE_EVIDENCE.md` for exact, evidenced status.
+Phases 1-5 are implemented for Android (iOS is scaffolded and unverified: no Xcode available): status saver and library, photo editor, video editor, Hindi/English status maker, Private Folder, Storage Manager, and the WAPCentral **service-control check**. Ads, push notifications, promotions and Remove Ads billing are **not implemented**: they are blocked on owner-supplied material (see `docs/audit/WAPCENTRAL_INTEGRATION_STATUS.md`). See `docs/audit/FEATURE_MATRIX.md`, `KNOWN_LIMITATIONS.md` and `RELEASE_EVIDENCE.md` for exact, evidenced status.
+
+The only network request the app makes is the service-status GET to WAPCentral (no user data). The optional platform key is passed at build time with `--dart-define=WAP_APP_KEY=...` and must never be committed.
 
 ## Develop
 ```bash

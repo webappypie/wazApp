@@ -87,6 +87,14 @@ class SettingsScreen extends ConsumerWidget {
             subtitle: Text('WazApp never uploads your photos or videos and has no account or cloud backup. '
                 'Files are only read from folders you choose or pick yourself.'),
           ),
+          const ListTile(
+            leading: Icon(Icons.cloud_sync_outlined),
+            title: Text('Service check'),
+            subtitle: Text('When the app starts or comes back to the foreground it asks wapcentral.webappypie.com whether '
+                'the service is running. That request carries only the app identifier (and, like any web request, your '
+                'IP address). No photos, videos, file names or personal data are sent. If the check fails, '
+                'everything keeps working offline.'),
+          ),
           const _Header('About'),
           ListTile(
             leading: const Icon(Icons.description_outlined),

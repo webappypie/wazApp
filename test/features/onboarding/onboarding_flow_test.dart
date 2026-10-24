@@ -89,13 +89,15 @@ void main() {
     await h.settle(tester);
     await tester.tap(find.descendant(of: find.byType(NavigationBar), matching: find.text('Settings')));
     await h.settle(tester);
-    await tester.drag(find.byType(ListView).last, const Offset(0, -600));
-    await h.settle(tester);
-
+    final scroll = find.byType(Scrollable).last;
+    await tester.scrollUntilVisible(find.textContaining('never uploads your photos or videos'), 200, scrollable: scroll);
     expect(find.textContaining('never uploads your photos or videos'), findsOneWidget);
+    await tester.scrollUntilVisible(find.textContaining('No photos, videos, file names or personal data are sent'), 200, scrollable: scroll);
+    expect(find.textContaining('wapcentral.webappypie.com'), findsOneWidget, reason: 'the network use is disclosed');
+    await tester.scrollUntilVisible(find.textContaining('not affiliated with'), 200, scrollable: scroll);
     expect(find.textContaining('not affiliated with'), findsOneWidget);
-    // No encryption claim anywhere (Private Folder does not exist yet).
-    expect(find.textContaining('encrypt'), findsNothing);
+    // Any mention of encryption must be a denial ("not encrypted"); never a claim.
+    expect(find.textContaining(RegExp(r'(?<!not )(encrypted|encryption|AES)')), findsNothing);
     await h.dispose(tester);
   });
 }
