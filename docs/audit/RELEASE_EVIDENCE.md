@@ -97,3 +97,59 @@ Proven on the host with real Drift + real files and only the platform bridge fak
 
 ## Previous baseline (Phase 0, WappTidy code) — superseded
 `flutter analyze` 16 issues; `flutter test` 212 passed; `flutter build apk --debug` OK (381 s).
+
+## Phase 6 - physical-device run (debug build only; no release build made)
+
+Device: Redmi Note 11 Pro (2201116SI, MIUI V816), Android 13 / API 33, 1080x2400. WhatsApp Business installed with 4 real statuses (3 JPG, 1 MP4); regular WhatsApp NOT installed. Build: `flutter build apk --debug --target-platform android-arm64`, installed with `adb install` (MIUI shows an "Install via USB?" prompt that must be accepted within seconds).
+
+| Check | Result (observed) |
+|---|---|
+| First launch -> intro -> /setup | works; setup lists WhatsApp "Not installed", WhatsApp Business "Not set up", Notifications "Not asked yet", Private Folder lock "Off", Photos & files "No permission needed" (real states) |
+| Business folder picker | opens directly on `.Statuses`; "Use this folder" + "Allow" -> card shows "Allowed", snackbar "WhatsApp Business connected" |
+| Home | both sources shown; Business ring has 4 segments, "4 statuses"; WhatsApp tile "Not installed" |
+| Save a status | saved file in app storage has the same MD5 as the original in `.Statuses` |
+| App restart (force-stop) | grant and "already saved" marker persist |
+| Notification prompt | real system dialog on tap only; Don't allow -> "Denied" + "Try again"; second refusal -> "Blocked" + "Open settings"; no further prompting; "Open settings" opens the app's system notification settings and Back returns |
+| Remove access (Settings) | Business returns to "Not set up"; Home tile shows "Tap to set up" |
+| No crashes | logcat: only the pre-existing "Zone mismatch" warning (now fixed in source, not re-run on device) |
+
+NOT verified on a device: regular WhatsApp source (not installed), Android versions other than 13, granting notifications through system settings and resume refresh, Private Folder lock enable with the real prompt, video save/editor/Private/Storage flows after this change, ads/notifications/promotions (no `WAP_APP_KEY` supplied, so these surfaces are intentionally off), splash animation by eye (debug cold start 3-6 s hid it), offline behaviour, iOS (no Mac).
+
+## Phase 6 - physical-device run (debug build only; no release build made)
+
+Device: Redmi Note 11 Pro (2201116SI, MIUI V816), Android 13 / API 33, 1080x2400. WhatsApp Business installed with 4 real statuses (3 JPG, 1 MP4); regular WhatsApp NOT installed. Build: `flutter build apk --debug --target-platform android-arm64`, installed with `adb install` (MIUI shows an "Install via USB?" prompt that must be accepted within seconds).
+
+| Check | Result (observed) |
+|---|---|
+| First launch -> intro -> /setup | works; setup lists WhatsApp "Not installed", WhatsApp Business "Not set up", Notifications "Not asked yet", Private Folder lock "Off", Photos & files "No permission needed" (real states) |
+| Business folder picker | opens directly on `.Statuses`; "Use this folder" + "Allow" -> card shows "Allowed", snackbar "WhatsApp Business connected" |
+| Home | both sources shown; Business ring has 4 segments, "4 statuses"; WhatsApp tile "Not installed" |
+| Save a status | saved file in app storage has the same MD5 as the original in `.Statuses` |
+| App restart (force-stop) | grant and "already saved" marker persist |
+| Notification prompt | real system dialog on tap only; Don't allow -> "Denied" + "Try again"; second refusal -> "Blocked" + "Open settings"; no further prompting; "Open settings" opens the app's system notification settings and Back returns |
+| Remove access (Settings) | Business returns to "Not set up"; Home tile shows "Tap to set up" |
+| Crashes | none seen; logcat showed only a "Zone mismatch" warning (fixed in source afterwards, not re-run on device) |
+
+NOT verified on a device: regular WhatsApp source (not installed), Android versions other than 13, granting notifications through system settings and the resume refresh, Private Folder lock enable with the real prompt, video save/editor/Private/Storage flows after this change, ads/notifications/promotions (no `WAP_APP_KEY` supplied, so these surfaces are intentionally off), the splash animation by eye (debug cold start hid it), offline behaviour, iOS (no Mac).
+
+## Phase 7 - detection, contact metadata and missing statuses (physical device, debug build)
+
+Device as in Phase 6 (Android 13): WhatsApp Business installed, WhatsApp Messenger not installed.
+
+### Installed-app detection
+- `getPackageInfo` for `com.whatsapp` / `com.whatsapp.w4b` with only those two `<queries>` entries: Business detected, Messenger not detected (matches `pm list packages`). Home shows exactly one card (Business) - scenario B observed on the device. Scenarios A, C and D are covered by host tests (`home_sources_test`) only.
+- Removing the folder grant in Settings turned the card into "Not set up / Allow access" while the app stayed detected; "Allow access" on the card ran the real picker and restored "4 statuses available" (installed vs accessible are separate states, observed).
+
+### Can statuses be grouped by contact? No
+Inspected the real status folder over adb (`Android/media/com.whatsapp.w4b/WhatsApp Business/Media/.Statuses`):
+- 4 files, names are 32-hex content hashes (e.g. `6f2f...d165.jpg`), plus an empty `.nomedia`; no sidecar/metadata files.
+- JPEG: plain JFIF, no EXIF/GPS/comment; MP4: only `ftyp mp42/isom` boxes; no contact id or phone number strings found.
+- All four files share the same modification time (download time), so time cannot separate senders either.
+- The only place WhatsApp stores which contact posted what is its private database; the app's `Android/media/.../Databases` folder holds only encrypted `msgstore-*.crypt14` backups. Reading or decrypting them is unsupported and out of scope (no private-database scraping).
+Conclusion: contact names, avatars and status-to-contact mapping are not available through supported mechanisms. WazApp groups by day (file time) and says so; no contact identity is invented.
+
+### Why a status visible in WhatsApp may not be listed
+Verified: the folder contains only media files WhatsApp has written; WazApp lists exactly those 4 and there is no other source that reveals a status that has no file. NOT verified by test: that opening a status in WhatsApp is what causes the file to appear (that would need viewing other people's statuses in the user's WhatsApp, which was not done; WazApp never does this either). The in-app help therefore says statuses "may appear only after WhatsApp has downloaded them", states it is not guaranteed, offers "Check again" and "Open WhatsApp[ Business]" (launcher intent only), and keeps folder-permission problems in a separate message. Device/OS differences not tested: Android 10 and older use `WhatsApp[ Business]/Media/.Statuses` (hint path only, untested).
+
+### On-device UI results (Phase 7 build)
+Home hero card with real thumbnails, source screen with day heading "Today", filter chips "All 4 / Photos 3 / Videos 1", "Saved" marker, collapsed-by-default "Missing a status?" help, app-bar "Open WhatsApp Business" launching the Business app (focus confirmed with `dumpsys window`) and returning to WazApp. Not verified: dark/light by eye in light mode, TalkBack, splash by eye.

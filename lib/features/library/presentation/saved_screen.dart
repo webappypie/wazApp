@@ -14,6 +14,7 @@ import '../../../core/di/providers.dart';
 import '../../../core/router/app_router.dart';
 import '../../../core/widgets/media_tile.dart';
 import '../../../core/widgets/state_widgets.dart';
+import '../../../integrations/wapcentral/ads/ad_slot.dart';
 import '../domain/library_models.dart';
 import 'library_actions.dart';
 import 'library_providers.dart';
@@ -58,11 +59,11 @@ class _SavedScreenState extends ConsumerState<SavedScreen> {
         appBar: _selecting ? _selectionBar() : _normalBar(),
         body: Column(
           children: [
-            SizedBox(
-              height: 52,
-              child: ListView(
-                scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.sm),
+            // Intrinsic height (not a fixed-height ListView) so large system text never clips the chips.
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.sm),
+              child: Row(
                 children: [
                   for (final f in LibraryFilter.values)
                     Padding(
@@ -98,6 +99,13 @@ class _SavedScreenState extends ConsumerState<SavedScreen> {
                 },
               ),
             ),
+            // WAPCentral banner placement; takes no space unless an ad actually loaded.
+            if (!_selecting)
+              const AdSlot(
+                placementKey: AdPlacements.savedBanner,
+                format: AdSlotFormat.banner,
+                padding: EdgeInsets.symmetric(vertical: AppSpacing.xs),
+              ),
           ],
         ),
       ),

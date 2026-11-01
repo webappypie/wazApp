@@ -32,16 +32,26 @@ void main() {
     await tester.tap(find.text('Get started'));
     await h.settle(tester);
 
+    // The intro leads to the guided permission setup; it counts as done only once that is finished.
+    expect(find.text('Set up WazApp'), findsOneWidget);
+    expect(h.onboarding.completed, isFalse);
+    await tester.tap(find.text('Continue'));
+    await h.settle(tester);
+
     expect(h.onboarding.completed, isTrue);
     expect(find.byType(NavigationBar), findsOneWidget);
     await h.dispose(tester);
   });
 
-  testWidgets('Skip finishes onboarding', (tester) async {
+  testWidgets('Skip jumps to the permission setup, whose Skip finishes onboarding', (tester) async {
     final h = await Harness.create(tester, onboarded: false);
     await tester.pumpWidget(app(h));
     await h.settle(tester);
     await tester.tap(find.text('Skip'));
+    await h.settle(tester);
+    expect(find.text('Set up WazApp'), findsOneWidget);
+    expect(h.onboarding.completed, isFalse);
+    await tester.tap(find.text('Skip for now'));
     await h.settle(tester);
     expect(h.onboarding.completed, isTrue);
     expect(find.byType(NavigationBar), findsOneWidget);

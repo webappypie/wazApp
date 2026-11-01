@@ -16,6 +16,8 @@ import 'package:wazapp/core/di/providers.dart';
 import 'package:wazapp/core/services/onboarding/onboarding_service.dart';
 import 'package:wazapp/features/library/data/library_storage.dart';
 import 'package:wazapp/features/library/data/media_probe.dart';
+import 'package:wazapp/features/onboarding/presentation/splash_screen.dart';
+import 'package:wazapp/features/permissions/presentation/access_controller.dart';
 import 'package:wazapp/features/private_folder/data/device_auth_service.dart';
 import 'package:wazapp/features/private_folder/presentation/private_providers.dart';
 import 'package:wazapp/features/video_editor/data/video_encoder.dart';
@@ -129,6 +131,9 @@ class Harness {
   final FakeStatusAccess access;
   final FakeOnboarding onboarding;
 
+  /// OS permission fake (notifications, settings pages).
+  final FakePermissionGateway gateway = FakePermissionGateway();
+
   static Future<Harness> create(
     WidgetTester tester, {
     FakeStatusAccess? access,
@@ -177,6 +182,8 @@ class Harness {
         serviceControlClientProvider.overrideWithValue((service ?? ScriptedService()).client),
         urlOpenerProvider.overrideWithValue(opener ?? FakeUrlOpener()),
         onboardingServiceProvider.overrideWithValue(onboarding),
+        permissionGatewayProvider.overrideWithValue(gateway),
+        splashHoldProvider.overrideWithValue(Duration.zero),
       ];
 
   Widget wrap(Widget child) => ProviderScope(

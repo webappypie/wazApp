@@ -213,10 +213,9 @@ class _StatusMakerScreenState extends ConsumerState<StatusMakerScreen> {
                   decoration: const InputDecoration(labelText: 'Your message', hintText: 'Type in English or हिन्दी'),
                   onChanged: (v) => _update(_draft.copyWith(text: v)),
                 ),
-                SizedBox(
-                  height: 44,
-                  child: ListView(
-                    scrollDirection: Axis.horizontal,
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
                     children: [
                       for (final f in kEditorFonts)
                         Padding(

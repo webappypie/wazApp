@@ -16,7 +16,7 @@ final _log = AppLogger.get('ErrorHandler');
 ///
 /// Usage in main.dart:
 ///   runWithErrorBoundary(() => runApp(const WazAppApp()));
-void runWithErrorBoundary(void Function() body) {
+void runWithErrorBoundary(FutureOr<void> Function() body) {
   // Zone-level errors (async exceptions not caught anywhere else).
   runZonedGuarded(
     () {

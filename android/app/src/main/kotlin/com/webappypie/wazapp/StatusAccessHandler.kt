@@ -75,6 +75,13 @@ class StatusAccessHandler(
                         val app = requireApp(call.argument("app"))
                         background(result) { hasAccess(app) }
                     }
+                    "accessState" -> {
+                        val app = requireApp(call.argument("app"))
+                        background(result) { accessState(app) }
+                    }
+                    "sdkInt" -> result.success(Build.VERSION.SDK_INT)
+                    "openApp" -> result.success(openApp(pkgOf(requireApp(call.argument("app")))))
+                    "openSettings" -> result.success(openSettings(call.argument<String>("kind") ?: "app"))
                     "requestAccess" -> requestAccess(requireApp(call.argument("app")), result)
                     "revokeAccess" -> {
                         val app = requireApp(call.argument("app"))
@@ -159,12 +166,16 @@ class StatusAccessHandler(
                     Intent.FLAG_GRANT_PREFIX_URI_PERMISSION
             )
             // Open the picker directly on the expected status folder (a hint only; the OS may ignore it).
+            // Android 11+ keeps statuses in Android/media/<package>; Android 10 and older use a
+            // top-level "WhatsApp[ Business]/Media" folder. Either path is only a hint.
+            val hintPath = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                "primary:Android/media/$pkg/$hint/Media/$STATUS_DIR"
+            } else {
+                "primary:$hint/Media/$STATUS_DIR"
+            }
             putExtra(
                 DocumentsContract.EXTRA_INITIAL_URI,
-                DocumentsContract.buildDocumentUri(
-                    EXTERNAL_STORAGE_AUTHORITY,
-                    "primary:Android/media/$pkg/$hint/Media/$STATUS_DIR",
-                ),
+                DocumentsContract.buildDocumentUri(EXTERNAL_STORAGE_AUTHORITY, hintPath),
             )
         }
         pendingPick = result
@@ -225,6 +236,66 @@ class StatusAccessHandler(
             true
         } catch (_: Exception) {
             false
+        }
+    }
+
+    /**
+     * Distinguishes the real reasons access can be missing so the UI never claims more than is true:
+     * not_configured (never chosen), revoked (the grant was dropped by the user/system),
+     * folder_missing (granted, but the status folder is gone, e.g. app reinstalled/cleared), granted.
+     */
+    private fun accessState(app: String): Map<String, Any?> {
+        val tree = prefs.getString("tree_$app", null)
+        val dir = prefs.getString("dir_$app", null)
+        if (tree == null || dir == null) return mapOf("state" to "not_configured")
+        val uri = Uri.parse(tree)
+        val persisted = activity.contentResolver.persistedUriPermissions.any {
+            it.uri == uri && it.isReadPermission
+        }
+        if (!persisted) return mapOf("state" to "revoked")
+        return try {
+            queryChildren(uri, dir)
+            mapOf("state" to "granted")
+        } catch (_: SecurityException) {
+            mapOf("state" to "revoked")
+        } catch (_: Exception) {
+            mapOf("state" to "folder_missing")
+        }
+    }
+
+    /** Opens the installed WhatsApp app (launcher intent only; nothing is done inside it). */
+    private fun openApp(pkg: String): Boolean {
+        val intent = activity.packageManager.getLaunchIntentForPackage(pkg) ?: return false
+        return try {
+            activity.startActivity(intent)
+            true
+        } catch (_: Exception) {
+            false
+        }
+    }
+
+    /** Opens a system settings page: "app" (this app's details), "security" (screen lock) or "notifications". */
+    private fun openSettings(kind: String): Boolean {
+        val intent = when (kind) {
+            "security" -> Intent(android.provider.Settings.ACTION_SECURITY_SETTINGS)
+            "notifications" -> Intent(android.provider.Settings.ACTION_APP_NOTIFICATION_SETTINGS)
+                .putExtra(android.provider.Settings.EXTRA_APP_PACKAGE, activity.packageName)
+            else -> Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS)
+                .setData(Uri.fromParts("package", activity.packageName, null))
+        }
+        return try {
+            activity.startActivity(intent)
+            true
+        } catch (_: Exception) {
+            try {
+                activity.startActivity(
+                    Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS)
+                        .setData(Uri.fromParts("package", activity.packageName, null))
+                )
+                true
+            } catch (_: Exception) {
+                false
+            }
         }
     }
 

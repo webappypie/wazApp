@@ -5,6 +5,8 @@ plugins {
     id("com.android.application")
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
+    // Reads android/app/google-services.json (project wazapp-512609, package com.webappypie.wazapp).
+    id("com.google.gms.google-services")
 }
 
 android {
@@ -23,6 +25,9 @@ android {
         targetSdk = 36
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+        // Google Mobile Ads App ID (guide section 8). The App ID is a manifest value (never served at runtime):
+        // debug/profile builds carry Google's official TEST App ID so a dev build can never touch production ads.
+        manifestPlaceholders["admobAppId"] = "ca-app-pub-3940256099942544~3347511713"
     }
 
     val keystorePropertiesFile = rootProject.file("key.properties")
@@ -44,6 +49,8 @@ android {
 
     buildTypes {
         release {
+            // Production Google Mobile Ads App ID for WazApp (guide section 8, production identifiers table).
+            manifestPlaceholders["admobAppId"] = "ca-app-pub-4918750794442822~8675091503"
             // Release builds are never silently debug-signed. Provide android/key.properties
             // (see key.properties.example) or pass -PallowDebugSigning=true for local R8 checks only.
             signingConfig = when {

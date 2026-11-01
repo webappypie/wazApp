@@ -59,3 +59,6 @@ WAPCentral_*Integration_Guide.md
 /android/build/
 /android/.gradle/
 /android/.kotlin/
+
+# Local WAPCentral key for --dart-define-from-file (never commit)
+dart_defines.json

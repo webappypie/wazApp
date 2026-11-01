@@ -105,7 +105,6 @@ class _SliderRow extends StatelessWidget {
         if (onReset != null)
           IconButton(
             tooltip: 'Reset $label',
-            visualDensity: VisualDensity.compact,
             icon: const Icon(Icons.restart_alt, size: 20),
             onPressed: onReset,
           ),

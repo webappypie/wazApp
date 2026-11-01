@@ -368,7 +368,8 @@ class _VideoEditorScreenState extends ConsumerState<VideoEditorScreen> implement
               if (await _confirmDiscard() && context.mounted) context.pop();
             },
           ),
-          title: const Text('Edit video'),
+          titleSpacing: 0,
+          title: const Text('Edit video', style: AppTextStyles.titleMedium),
           actions: [
             IconButton(
               tooltip: 'Undo',
@@ -481,11 +482,14 @@ class _VideoEditorScreenState extends ConsumerState<VideoEditorScreen> implement
             icon: Icon(playing ? Icons.pause_circle : Icons.play_circle, size: 36),
             onPressed: _togglePlay,
           ),
-          Text(
-            '${formatDuration(Duration(milliseconds: pos - _v.trimStartMs))} / ${formatDuration(Duration(milliseconds: _v.trimmedMs))}',
-            style: AppTextStyles.labelLarge,
+          Expanded(
+            child: Text(
+              '${formatDuration(Duration(milliseconds: pos - _v.trimStartMs))} / ${formatDuration(Duration(milliseconds: _v.trimmedMs))}',
+              style: AppTextStyles.labelLarge,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
           ),
-          const Spacer(),
           if (_v.mute) const Icon(Icons.volume_off, size: 20) else const Icon(Icons.volume_up, size: 20),
         ],
       ),
@@ -517,8 +521,9 @@ class _VideoEditorScreenState extends ConsumerState<VideoEditorScreen> implement
           onChanged: (v) => _onTrimChanged(v, movedStart: (v.start - _v.trimStartMs).abs() > (v.end - _v.trimEndMs).abs()),
           onChangeEnd: (_) => commitGesture(),
         ),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        Wrap(
+          alignment: WrapAlignment.spaceBetween,
+          spacing: AppSpacing.sm,
           children: [
             Text('Start ${formatDuration(Duration(milliseconds: _v.trimStartMs))}', style: AppTextStyles.labelMedium),
             Text('Length ${formatDuration(Duration(milliseconds: _v.trimmedMs))}', style: AppTextStyles.labelLarge),
@@ -594,15 +599,23 @@ class _VideoEditorScreenState extends ConsumerState<VideoEditorScreen> implement
           _tool = t;
           if (t != _VideoTool.text && t != _VideoTool.stickers) _selectedId = null;
         }),
-        child: SizedBox(
-          height: 60,
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(icon, color: selected ? scheme.primary : scheme.onSurfaceVariant),
-              Text(label,
-                  style: AppTextStyles.labelSmall.copyWith(color: selected ? scheme.primary : scheme.onSurfaceVariant)),
-            ],
+        // minHeight (not a fixed height) and a shrinking label so large system text cannot overflow the bar.
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(minHeight: 60),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 4),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(icon, color: selected ? scheme.primary : scheme.onSurfaceVariant),
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(label,
+                      style: AppTextStyles.labelSmall.copyWith(color: selected ? scheme.primary : scheme.onSurfaceVariant)),
+                ),
+              ],
+            ),
           ),
         ),
       ),

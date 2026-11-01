@@ -99,16 +99,20 @@ class PrivateSession extends Notifier<PrivateAccess> {
 
   Future<UnlockResult> unlock() async {
     final enabled = await ref.read(privateLockSettingProvider.future);
+    if (!ref.mounted) return UnlockResult.cancelled;
     if (!enabled) {
       state = PrivateAccess.unlocked;
       return UnlockResult.unlocked;
     }
     final auth = ref.read(deviceAuthServiceProvider);
-    if (await auth.availability() != AuthAvailability.available) {
+    final availability = await auth.availability();
+    if (!ref.mounted) return UnlockResult.cancelled;
+    if (availability != AuthAvailability.available) {
       state = PrivateAccess.unlocked;
       return UnlockResult.protectionUnavailable;
     }
     final outcome = await auth.authenticate('Unlock your Private Folder');
+    if (!ref.mounted) return UnlockResult.cancelled;
     if (outcome == AuthOutcome.success) {
       state = PrivateAccess.unlocked;
       return UnlockResult.unlocked;

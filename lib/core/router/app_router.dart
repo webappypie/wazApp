@@ -7,16 +7,19 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../features/create/presentation/create_screen.dart';
+import '../../integrations/wapcentral/notifications/notifications_ui.dart';
 import '../../features/editor/presentation/photo_editor_screen.dart';
 import '../../features/library/presentation/saved_screen.dart';
 import '../../features/library/presentation/viewer_screen.dart';
 import '../../features/onboarding/presentation/onboarding_screen.dart';
+import '../../features/permissions/presentation/permission_setup_screen.dart';
 import '../../features/private_folder/presentation/private_screen.dart';
 import '../../features/onboarding/presentation/splash_screen.dart';
 import '../../features/settings/presentation/settings_screen.dart';
 import '../../features/status/domain/status_models.dart';
 import '../../features/storage_manager/presentation/storage_screen.dart';
 import '../../features/status/presentation/home_screen.dart';
+import '../../features/status/presentation/source_screen.dart';
 import '../../features/status/presentation/status_preview_screen.dart';
 import '../../features/video_editor/presentation/video_editor_screen.dart';
 import '../../features/status_maker/presentation/status_maker_screen.dart';
@@ -26,6 +29,10 @@ class AppRoutes {
 
   static const splash = '/splash';
   static const onboarding = '/onboarding';
+  static const setup = '/setup';
+  static const source = '/source';
+  static const notifications = '/notifications';
+  static const notificationPreferences = '/notification-preferences';
   static const home = '/';
   static const saved = '/saved';
   static const settings = '/settings';
@@ -44,6 +51,21 @@ GoRouter buildRouter() => GoRouter(
       routes: [
         GoRoute(path: AppRoutes.splash, builder: (_, _) => const SplashScreen()),
         GoRoute(path: AppRoutes.onboarding, builder: (_, _) => const OnboardingScreen()),
+        GoRoute(
+          path: AppRoutes.notifications,
+          builder: (context, _) => NotificationsScreen(
+            onOpenPreferences: () => context.push(AppRoutes.notificationPreferences),
+          ),
+        ),
+        GoRoute(path: AppRoutes.notificationPreferences, builder: (_, _) => const NotificationPreferencesScreen()),
+        GoRoute(
+          path: '${AppRoutes.source}/:key',
+          builder: (_, state) {
+            final app = StatusApp.fromKey(state.pathParameters['key']);
+            return app == null ? const _BadRoute() : SourceScreen(app: app);
+          },
+        ),
+        GoRoute(path: AppRoutes.setup, builder: (_, _) => const PermissionSetupScreen()),
         GoRoute(
           path: AppRoutes.viewer,
           builder: (_, state) {

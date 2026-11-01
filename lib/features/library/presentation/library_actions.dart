@@ -4,18 +4,23 @@
 // Every flow reports real results: success is only shown for items that were
 // verified and persisted, and failures are listed instead of hidden.
 
+import 'dart:async';
 import 'dart:io';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../../../core/database/app_database.dart';
 import '../../../core/di/providers.dart';
 import '../../../core/error/app_error.dart';
+import '../../../integrations/wapcentral/ads/full_screen_ads.dart';
+import '../../../core/router/app_router.dart';
 import '../../status/domain/status_models.dart';
+import '../../status/presentation/status_providers.dart';
 import '../data/library_service.dart';
 
 const _filesExtensions = [
@@ -127,6 +132,23 @@ Future<SaveBatchResult?> saveStatusesFlow(
   VoidCallback? onViewSaved,
 }) async {
   if (items.isEmpty) return null;
+  // Re-check each source's real access first: it can be revoked while WazApp is in the background.
+  final access = ref.read(statusAccessServiceProvider);
+  for (final app in {for (final i in items) i.app}) {
+    if (await access.folderState(app) == StatusFolderState.granted) continue;
+    ref.invalidate(statusAccessProvider(app));
+    ref.invalidate(statusListProvider(app));
+    if (context.mounted) {
+      _snack(
+        context,
+        'Access to ${app.label} statuses was lost. Choose its folder again in Settings.',
+        actionLabel: 'Settings',
+        onAction: () => GoRouter.of(context).go(AppRoutes.settings),
+      );
+    }
+    return null;
+  }
+  if (!context.mounted) return null;
   final service = ref.read(libraryServiceProvider);
   final progress = BatchProgress(items.length);
   final result = await _withProgressDialog(
@@ -161,6 +183,12 @@ Future<SaveBatchResult?> saveStatusesFlow(
       messages: result.failed.map((f) => _messageOf(f.error)).toList(),
       onRetry: () => saveStatusesFlow(context, ref, result.failed.map((f) => f.item).toList(), onViewSaved: onViewSaved),
     );
+  }
+  // A natural break after a successful save (never on failure/cancel); the ad layer applies its own caps.
+  if (savedCount > 0 && context.mounted) {
+    unawaited(Future<void>.delayed(const Duration(milliseconds: 900), () {
+      if (context.mounted) ref.read(fullScreenAdsProvider).afterStatusSave(context, savedCount);
+    }));
   }
   return result;
 }

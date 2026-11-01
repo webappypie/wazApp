@@ -50,13 +50,38 @@ class StatusItem extends Equatable {
 
   String get extension {
     final i = name.lastIndexOf('.');
-    if (i < 0 || i == name.length - 1) return kind == MediaKind.video ? 'mp4' : 'jpg';
+    if (i < 0 || i == name.length - 1) {
+      return kind == MediaKind.video ? 'mp4' : 'jpg';
+    }
     return name.substring(i + 1).toLowerCase();
   }
 
   @override
-  List<Object?> get props => [app, uri, name, kind, mimeType, sizeBytes, modified];
+  List<Object?> get props => [
+    app,
+    uri,
+    name,
+    kind,
+    mimeType,
+    sizeBytes,
+    modified,
+  ];
 }
 
 /// Outcome of the folder picker.
 enum AccessRequestResult { granted, cancelled, wrongFolder }
+
+/// The real state of a source's folder grant (never inferred from the other app's grant).
+enum StatusFolderState {
+  /// The folder has never been chosen for this app.
+  notConfigured,
+
+  /// A grant exists and the status folder can be listed.
+  granted,
+
+  /// The user or the system dropped the grant; the folder must be chosen again.
+  revoked,
+
+  /// The grant exists but the status folder is gone (app reinstalled, data cleared, never opened).
+  folderMissing,
+}

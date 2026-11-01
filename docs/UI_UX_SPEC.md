@@ -32,3 +32,7 @@ Centralized tokens for spacing, typography, radii, elevation, colour and motion.
 
 ## Screen inventory
 Startup, onboarding, permission rationale/recovery, home/discovery, source-access setup, library/search/filter, viewer, save progress, multi-select, photo editor, video editor, status maker/templates, private folder/auth, storage manager, notification centre if supported, premium/remove ads, settings, privacy/about and integration/offline errors.
+
+
+## Implemented design system (Phase 7)
+Reference: the local Clenzy project (patterns only). Tokens: `core/design/tokens.dart` (colours, spacing, radii, type) and `core/design/waz_theme.dart` (`WazTheme` extension: hero gradients, on-hero colours, signature green, `AppMotion`). Fonts: Sora (display) + Plus Jakarta Sans (body), Hind as Devanagari fallback. Components: `AppCard`, `SectionTitle`, `AccentIcon`, `StatusPill`, `Entrance`, `StatusRing`, `MediaTile`, `EmptyState`/`ErrorState`/skeletons. Home shows one hero card per installed WhatsApp app; statuses open in a source screen grouped by day.

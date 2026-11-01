@@ -1,15 +1,14 @@
 // lib/features/onboarding/presentation/onboarding_screen.dart
 //
 // Explains the app before anything is requested (docs/MASTER_PRD.md).
-// No permission is asked here: status folders and imports are authorised later,
-// in context, by the user choosing a folder or file.
+// No permission is asked on these pages; they lead to the guided permission setup
+// (/setup), where every item is requested only when the user taps its button.
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/design/tokens.dart';
-import '../../../core/di/providers.dart';
 import '../../../core/router/app_router.dart';
 import '../../../core/widgets/buttons.dart';
 
@@ -30,15 +29,22 @@ class _Page {
 class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   final _controller = PageController();
   int _page = 0;
-  bool _finishing = false;
-
   static const _pages = [
-    _Page(Icons.download_rounded, 'Save',
-        'Keep the statuses you have viewed. You choose the folder once; WazApp only reads it and never uploads anything.'),
-    _Page(Icons.auto_awesome_outlined, 'Style',
-        'Edit photos and make text statuses in English or हिन्दी. Your originals are never changed.'),
-    _Page(Icons.ios_share_rounded, 'Share',
-        'Share any saved item from the share sheet, or save a copy to your gallery. You are always in control.'),
+    _Page(
+      Icons.download_rounded,
+      'Save',
+      'Keep the statuses you have viewed. You choose the folder once; WazApp only reads it and never uploads anything.',
+    ),
+    _Page(
+      Icons.auto_awesome_outlined,
+      'Style',
+      'Edit photos and make text statuses in English or हिन्दी. Your originals are never changed.',
+    ),
+    _Page(
+      Icons.ios_share_rounded,
+      'Share',
+      'Share any saved item from the share sheet, or save a copy to your gallery. You are always in control.',
+    ),
   ];
 
   @override
@@ -47,16 +53,8 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     super.dispose();
   }
 
-  Future<void> _finish() async {
-    if (_finishing) return;
-    setState(() => _finishing = true);
-    try {
-      await ref.read(onboardingServiceProvider).markOnboardingComplete();
-    } catch (_) {
-      // If the flag cannot be stored the intro simply shows again next launch.
-    }
-    if (mounted) context.go(AppRoutes.home);
-  }
+  /// The intro is not "complete" until the permission setup is finished or skipped there.
+  void _next() => context.go(AppRoutes.setup);
 
   @override
   Widget build(BuildContext context) {
@@ -68,7 +66,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
           children: [
             Align(
               alignment: Alignment.centerRight,
-              child: TextButton(onPressed: _finish, child: const Text('Skip')),
+              child: TextButton(onPressed: _next, child: const Text('Skip')),
             ),
             Expanded(
               child: PageView.builder(
@@ -77,26 +75,42 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                 onPageChanged: (i) => setState(() => _page = i),
                 itemBuilder: (context, i) {
                   final p = _pages[i];
-                  return Padding(
-                    padding: const EdgeInsets.all(AppSpacing.lg),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Container(
-                          width: 112,
-                          height: 112,
-                          decoration: BoxDecoration(color: scheme.primaryContainer, shape: BoxShape.circle),
-                          child: Icon(p.icon, size: 56, color: scheme.onPrimaryContainer),
-                        ),
-                        const SizedBox(height: AppSpacing.xl),
-                        Text(p.title, style: AppTextStyles.headlineMedium, textAlign: TextAlign.center),
-                        const SizedBox(height: AppSpacing.md),
-                        Text(
-                          p.body,
-                          style: AppTextStyles.bodyLarge.copyWith(color: scheme.onSurfaceVariant),
-                          textAlign: TextAlign.center,
-                        ),
-                      ],
+                  // Scrollable so large system text or a small screen never overflows the page.
+                  return Center(
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.all(AppSpacing.lg),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Container(
+                            width: 112,
+                            height: 112,
+                            decoration: BoxDecoration(
+                              color: scheme.primaryContainer,
+                              shape: BoxShape.circle,
+                            ),
+                            child: Icon(
+                              p.icon,
+                              size: 56,
+                              color: scheme.onPrimaryContainer,
+                            ),
+                          ),
+                          const SizedBox(height: AppSpacing.xl),
+                          Text(
+                            p.title,
+                            style: AppTextStyles.headlineMedium,
+                            textAlign: TextAlign.center,
+                          ),
+                          const SizedBox(height: AppSpacing.md),
+                          Text(
+                            p.body,
+                            style: AppTextStyles.bodyLarge.copyWith(
+                              color: scheme.onSurfaceVariant,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ],
+                      ),
                     ),
                   );
                 },
@@ -112,7 +126,9 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                     width: i == _page ? 24 : 8,
                     height: 8,
                     decoration: BoxDecoration(
-                      color: i == _page ? scheme.primary : scheme.outlineVariant,
+                      color: i == _page
+                          ? scheme.primary
+                          : scheme.outlineVariant,
                       borderRadius: BorderRadius.circular(AppRadius.full),
                     ),
                   ),
@@ -122,15 +138,20 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
               padding: const EdgeInsets.all(AppSpacing.lg),
               child: PrimaryButton(
                 label: last ? 'Get started' : 'Next',
-                isLoading: _finishing,
                 onPressed: last
-                    ? _finish
+                    ? _next
                     : () => _controller.nextPage(
-                        duration: const Duration(milliseconds: 250), curve: Curves.easeOut),
+                        duration: const Duration(milliseconds: 250),
+                        curve: Curves.easeOut,
+                      ),
               ),
             ),
             const Padding(
-              padding: EdgeInsets.only(bottom: AppSpacing.md, left: AppSpacing.lg, right: AppSpacing.lg),
+              padding: EdgeInsets.only(
+                bottom: AppSpacing.md,
+                left: AppSpacing.lg,
+                right: AppSpacing.lg,
+              ),
               child: Text(
                 'Independent app, not affiliated with WhatsApp or Meta.',
                 style: AppTextStyles.bodySmall,

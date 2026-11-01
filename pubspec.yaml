@@ -38,6 +38,22 @@ dependencies:
   crypto: ^3.0.7
   http: ^1.6.0
   url_launcher: ^6.3.3
+  permission_handler: ^12.0.1  # notification permission state + request (Android 13+/iOS)
+
+  # --- WAPCentral (integration guide sections 5, 8, 10) ---
+  # Path packages: the SDKs are not published on pub.dev; they live in the sibling WAPCentral checkout.
+  firebase_core: ^4.4.0
+  firebase_messaging: ^16.1.1
+  google_mobile_ads: ^9.1.0   # Google AdMob, the only ad SDK (direct, no mediation)
+  visibility_detector: ^0.4.0+2  # counts an ad/promo impression only when it is really on screen
+  wap_core_sdk:
+    path: ../WAPCentral/sdks/wap_core_sdk
+  wap_ads_sdk:
+    path: ../WAPCentral/sdks/wap_ads_sdk
+  wap_notifications_sdk:
+    path: ../WAPCentral/sdks/wap_notifications_sdk
+  wap_promo_sdk:
+    path: ../WAPCentral/sdks/wap_promo_sdk
 
 dev_dependencies:
   flutter_test:
@@ -64,6 +80,14 @@ flutter:
   # Bundled OFL fonts. Every family covers Devanagari (Hindi) and Latin, except Pacifico
   # (Latin only; Hindi text falls back to Hind). See assets/fonts/README.md.
   fonts:
+    # UI fonts (same pair as the Clenzy reference): Sora for headlines/numbers, Plus Jakarta Sans for body.
+    # Neither covers Devanagari; Hind is the fallback (see AppTheme).
+    - family: Sora
+      fonts:
+        - asset: assets/fonts/Sora.ttf
+    - family: PlusJakartaSans
+      fonts:
+        - asset: assets/fonts/PlusJakartaSans.ttf
     - family: Hind
       fonts:
         - asset: assets/fonts/Hind-Regular.ttf

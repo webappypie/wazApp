@@ -7,11 +7,47 @@ import 'dart:typed_data';
 import 'package:wazapp/core/error/app_error.dart';
 import 'package:wazapp/features/library/data/media_probe.dart';
 import 'package:wazapp/features/library/domain/library_models.dart';
+import 'package:wazapp/features/permissions/data/permission_gateway.dart';
+import 'package:wazapp/features/permissions/domain/access_models.dart';
 import 'package:wazapp/features/status/data/status_access_service.dart';
 import 'package:wazapp/features/status/domain/status_models.dart';
 
 /// Simulates the SAF bridge: "statuses" are real files in a temp directory and
 /// copyToFile really copies them (so size/rollback behaviour is exercised).
+/// Scriptable OS permission layer (notifications, settings pages).
+class FakePermissionGateway implements PermissionGateway {
+  AccessStatus notifications = AccessStatus.notRequested;
+
+  /// What a system prompt results in when the user is asked.
+  AccessStatus promptResult = AccessStatus.granted;
+  int requestCount = 0;
+  final List<SettingsPage> openedSettings = [];
+  bool settingsOpenable = true;
+  int? sdkInt = 33;
+
+  @override
+  Future<int?> androidSdkInt() async => sdkInt;
+
+  @override
+  Future<AccessStatus> notificationStatus() async => notifications;
+
+  @override
+  Future<AccessStatus> requestNotifications() async {
+    if (notifications == AccessStatus.granted || notifications == AccessStatus.permanentlyDenied) {
+      return notifications;
+    }
+    requestCount++;
+    notifications = promptResult;
+    return notifications;
+  }
+
+  @override
+  Future<bool> openSettings(SettingsPage page) async {
+    openedSettings.add(page);
+    return settingsOpenable;
+  }
+}
+
 class FakeStatusAccess implements StatusAccessService, MediaTools {
   FakeStatusAccess({
     this.supported = true,
@@ -73,6 +109,22 @@ class FakeStatusAccess implements StatusAccessService, MediaTools {
 
   @override
   Future<bool> hasAccess(StatusApp app) async => access[app] ?? false;
+
+  final List<StatusApp> openedApps = [];
+
+  @override
+  Future<bool> openApp(StatusApp app) async {
+    openedApps.add(app);
+    return installed[app] == true;
+  }
+
+  /// Tests can force a state (e.g. revoked); otherwise it follows [access].
+  final Map<StatusApp, StatusFolderState> folderStates = {};
+
+  @override
+  Future<StatusFolderState> folderState(StatusApp app) async =>
+      folderStates[app] ??
+      (access[app] == true ? StatusFolderState.granted : StatusFolderState.notConfigured);
 
   @override
   Future<AccessRequestResult> requestAccess(StatusApp app) async {

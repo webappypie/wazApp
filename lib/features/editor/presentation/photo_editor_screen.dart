@@ -311,7 +311,9 @@ class _PhotoEditorScreenState extends ConsumerState<PhotoEditorScreen> implement
               if (await _confirmDiscard() && context.mounted) context.pop();
             },
           ),
-          title: const Text('Edit photo'),
+          // Four actions leave little room on a 360 dp phone: a smaller title keeps it from collapsing.
+          titleSpacing: 0,
+          title: const Text('Edit photo', style: AppTextStyles.titleMedium),
           actions: [
             IconButton(
               tooltip: 'Undo',
@@ -418,15 +420,23 @@ class _PhotoEditorScreenState extends ConsumerState<PhotoEditorScreen> implement
           _tool = t;
           if (t != EditorTool.text && t != EditorTool.stickers) _selectedId = null;
         }),
-        child: SizedBox(
-          height: 60,
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(icon, color: selected ? scheme.primary : scheme.onSurfaceVariant),
-              Text(label,
-                  style: AppTextStyles.labelSmall.copyWith(color: selected ? scheme.primary : scheme.onSurfaceVariant)),
-            ],
+        // minHeight (not a fixed height) and a shrinking label so large system text cannot overflow the bar.
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(minHeight: 60),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 4),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(icon, color: selected ? scheme.primary : scheme.onSurfaceVariant),
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(label,
+                      style: AppTextStyles.labelSmall.copyWith(color: selected ? scheme.primary : scheme.onSurfaceVariant)),
+                ),
+              ],
+            ),
           ),
         ),
       ),

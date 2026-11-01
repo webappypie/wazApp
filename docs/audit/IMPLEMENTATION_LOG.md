@@ -107,3 +107,37 @@ SDK integration (B1), ads config/tracking, notification registration/feed, promo
 2. A `PopScope` in the gate had no effect (the gate is above the Navigator; back at the root returned false): back is now consumed in `WazApp.didPopRoute`.
 3. A blank `destinationUrl` falls back to the guide's default link (test expectation corrected, product behaviour as the guide states).
 4. The Settings list got longer, so the onboarding privacy-text test now scrolls to each text instead of one fixed drag.
+
+## Phase 6 - dual WhatsApp sources, permission setup, splash, WAPCentral SDKs (2026-10-25)
+
+### Delivered
+- **Sources:** native `accessState` (`not_configured / granted / revoked / folder_missing`), SDK-aware picker hint (Android 11+ `Android/media/<pkg>/...`, older `WhatsApp[ Business]/Media`), Home shows both sources always (circular status ring per source: one segment per real status, warning ring when access is missing, "Not installed" tile), access re-checked before every save (`saveStatusesFlow`).
+- **Permissions & Access** (`features/permissions/`): `PermissionGateway` (permission_handler + native settings deep links), `AccessOverviewController` (real state per item, refreshed on app resume), shared `AccessCard`, guided `/setup` screen after the intro (Continue / Skip / Try again / Open settings / Check again), Settings > Permissions & Access section. No fake toggles: Photos & files honestly reports "No permission needed" (system pickers + MediaStore). Notifications are prompted only on a tap; after a second refusal the action becomes "Open settings".
+- **Splash:** original launcher icon (adaptive vector, replaces the Flutter default), native teal launch theme + Android 12 splash attributes, animated in-app splash (three-segment ring draw, word-by-word tagline, tap to skip, reduced-motion aware, ~1.3 s, routing as soon as the local flag is read).
+- **WAPCentral SDKs** (see `WAPCENTRAL_INTEGRATION_STATUS.md`): the four SDKs were found as sibling path packages; ads (AdMob direct, test units in non-release builds), notifications (FCM registration only after permission, inbox, preferences), promotions wired in. Feature surfaces are hidden without `--dart-define WAP_APP_KEY`.
+- `main()` now runs inside the error-boundary zone (removed a "Zone mismatch" warning seen in logcat).
+
+### Bugs found by tests / device
+1. Splash tagline intervals exceeded 1.0 (assertion) and the tagline row overflowed at 2x text: fixed (`Wrap`, intervals).
+2. `flutter build apk --debug` once failed in `:firebase_core:bundleLibCompileToJarDebug` ("already contains entry"); deleting `build/firebase_core` and rebuilding succeeded (stale intermediates, not reproduced).
+3. Onboarding tests updated: the intro now leads to /setup, which completes onboarding.
+
+## Phase 7 - Clenzy-informed redesign, source auto-detection, day grouping, missing-status help (2026-10-25)
+
+### Clenzy reference (inspected locally at `D:\Mobile-App\Clenzy`)
+Adopted patterns: a `ThemeExtension` for semantic tokens (hero gradient, card shadow, on-hero colours, one bright "signature" colour) instead of ad-hoc colours; a bundled two-font system (Sora for headlines/numbers, Plus Jakarta Sans for body, both OFL, copied with their licences); `AppCard` (hairline border, soft shadow, press-scale), `SectionTitle`, `AccentIcon`, `StatusPill`; a motion scale that honours "remove animations"; short staggered entrances; a hero-gradient summary card as the home anchor. NOT copied: Clenzy's lime/paper palette (WazApp keeps teal/green), its donut chart, category accents or any code.
+
+### Redesigned
+`WazTheme` + `AppMotion` (`core/design/waz_theme.dart`), `design_components.dart`, typography (Sora/Jakarta + Hind fallback for Devanagari), cards/app bar/navigation bar themes, **Home** (hero source cards with status ring, real thumbnail strip, per-state action, create/import tiles), new **Source screen** (day-grouped grid, filter chips with real counts, multi-select save, pull to refresh, Missing-a-status help), Permissions cards. Loading/empty/permission/error states reuse the same components.
+
+### Detection
+`availableSourcesProvider` lists only installed apps (package visibility via `<queries>` for `com.whatsapp` and `com.whatsapp.w4b`, resolved by `PackageManager.getPackageInfo`). Home shows one card per installed app (A: WhatsApp only, B: Business only, C: both, D: neither -> explanation, no placeholders). Installed and accessible are separate states. Detection and folder state are re-read on resume, on pull-to-refresh and on "Check again".
+
+### Contact grouping: NOT supported (see RELEASE_EVIDENCE Phase 7 for the evidence)
+Statuses are grouped by day instead (`status_grouping.dart`); no contact name, avatar or per-contact screen is shown, because none can be obtained legitimately.
+
+### Tests added
+`status_grouping_test` (3), `home_sources_test` (9: scenarios A-D, installed vs access, revoked recovery, re-detect on refresh and on resume, iOS), `source_screen_test` (12: grouping, filters, missing-status help, Open WhatsApp, access vs availability, separate sources, errors, save, access re-check before save, multi-select). The old Home grid tests moved to the source screen.
+
+## Phase 8 - full-screen ad placements (2026-10-25)
+Real AdMob interstitial, app-open and rewarded support in the provider, a placement coordinator with explicit frequency rules (`full_screen_ads.dart`), hooks in `saveStatusesFlow` (interstitial), the `WazApp` lifecycle (app open) and Settings (optional rewarded "Support WazApp"). A pending-timer failure in the service-gate tests led to checking "ads on" before scheduling the app-open delay. See WAPCENTRAL_INTEGRATION_STATUS.md for the rules and the device evidence.

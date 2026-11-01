@@ -70,7 +70,7 @@ class _PrivateScreenState extends ConsumerState<PrivateScreen> {
     return Scaffold(
       appBar: AppBar(title: const Text('Private')),
       body: Center(
-        child: Padding(
+        child: SingleChildScrollView(
           padding: const EdgeInsets.all(AppSpacing.lg),
           child: Column(
             mainAxisSize: MainAxisSize.min,

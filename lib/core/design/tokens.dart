@@ -8,6 +8,8 @@
 
 import 'package:flutter/material.dart';
 
+import 'waz_theme.dart';
+
 // ---------------------------------------------------------------------------
 // Colour palette
 // ---------------------------------------------------------------------------
@@ -101,6 +103,11 @@ class AppColors {
 // Type scale — Material 3 compliant, no arbitrary sizes
 // ---------------------------------------------------------------------------
 
+/// Display face for headlines, titles and big numbers. Devanagari falls back to Hind.
+const kDisplayFont = 'Sora';
+const kBodyFont = 'PlusJakartaSans';
+const kFontFallback = ['Hind'];
+
 class AppTextStyles {
   AppTextStyles._();
 
@@ -110,13 +117,13 @@ class AppTextStyles {
   static const displaySmall = TextStyle(fontSize: 36, height: 1.22, fontWeight: FontWeight.w400);
 
   // Headline
-  static const headlineLarge = TextStyle(fontSize: 32, height: 1.25, fontWeight: FontWeight.w600);
-  static const headlineMedium = TextStyle(fontSize: 28, height: 1.29, fontWeight: FontWeight.w600);
-  static const headlineSmall = TextStyle(fontSize: 24, height: 1.33, fontWeight: FontWeight.w600);
+  static const headlineLarge = TextStyle(fontFamily: kDisplayFont, fontSize: 32, height: 1.25, fontWeight: FontWeight.w600);
+  static const headlineMedium = TextStyle(fontFamily: kDisplayFont, fontSize: 28, height: 1.29, fontWeight: FontWeight.w600);
+  static const headlineSmall = TextStyle(fontFamily: kDisplayFont, fontSize: 24, height: 1.33, fontWeight: FontWeight.w600);
 
   // Title
-  static const titleLarge = TextStyle(fontSize: 22, height: 1.27, fontWeight: FontWeight.w600);
-  static const titleMedium = TextStyle(fontSize: 16, height: 1.50, letterSpacing: 0.15, fontWeight: FontWeight.w600);
+  static const titleLarge = TextStyle(fontFamily: kDisplayFont, fontSize: 22, height: 1.27, fontWeight: FontWeight.w600);
+  static const titleMedium = TextStyle(fontFamily: kDisplayFont, fontSize: 16, height: 1.50, letterSpacing: 0.15, fontWeight: FontWeight.w600);
   static const titleSmall = TextStyle(fontSize: 14, height: 1.43, letterSpacing: 0.1, fontWeight: FontWeight.w600);
 
   // Body
@@ -220,12 +227,18 @@ class AppTheme {
   static ThemeData _build(ColorScheme scheme) {
     return ThemeData(
       useMaterial3: true,
+      fontFamily: kBodyFont,
+      fontFamilyFallback: kFontFallback,
       colorScheme: scheme,
+      extensions: [scheme.brightness == Brightness.light ? WazTheme.light() : WazTheme.dark()],
       textTheme: AppTextStyles.textTheme,
       scaffoldBackgroundColor: scheme.surface,
       cardTheme: CardThemeData(
-        elevation: AppElevation.card,
-        shape: const RoundedRectangleBorder(borderRadius: AppRadius.cardRadius),
+        elevation: AppElevation.none,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppRadius.xl - 2),
+          side: BorderSide(color: scheme.outlineVariant.withValues(alpha: 0.55)),
+        ),
         color: scheme.brightness == Brightness.light ? _kCardLight : _kCardDark,
         margin: EdgeInsets.zero,
       ),
@@ -239,14 +252,15 @@ class AppTheme {
       ),
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
-          minimumSize: const Size(double.infinity, 52),
+          minimumSize: const Size(0, 48),
           shape: const RoundedRectangleBorder(borderRadius: AppRadius.buttonRadius),
           textStyle: AppTextStyles.labelLarge,
         ),
       ),
       chipTheme: ChipThemeData(
         shape: const RoundedRectangleBorder(borderRadius: AppRadius.chipRadius),
-        labelStyle: AppTextStyles.labelMedium,
+        // Explicit colour: a colour-less themed labelStyle replaces the chip's own and leaves the label unpainted-white.
+        labelStyle: AppTextStyles.labelMedium.copyWith(color: scheme.onSurface),
         padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm, vertical: AppSpacing.xs),
         side: BorderSide(color: scheme.outlineVariant),
       ),
@@ -254,11 +268,28 @@ class AppTheme {
         type: BottomNavigationBarType.fixed,
       ),
       navigationBarTheme: NavigationBarThemeData(
-        labelTextStyle: WidgetStatePropertyAll(AppTextStyles.labelSmall),
-        indicatorShape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.all(Radius.circular(AppRadius.md)),
+        height: 72,
+        elevation: 0,
+        backgroundColor: scheme.surface,
+        surfaceTintColor: Colors.transparent,
+        indicatorColor: scheme.primaryContainer,
+        labelTextStyle: WidgetStateProperty.resolveWith(
+          (s) => AppTextStyles.labelSmall.copyWith(
+            color: s.contains(WidgetState.selected) ? scheme.onSurface : scheme.onSurfaceVariant,
+            fontWeight: s.contains(WidgetState.selected) ? FontWeight.w700 : FontWeight.w600,
+          ),
         ),
+        indicatorShape: const StadiumBorder(),
       ),
+      appBarTheme: AppBarTheme(
+        backgroundColor: scheme.surface,
+        surfaceTintColor: Colors.transparent,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+      ),
+      pageTransitionsTheme: const PageTransitionsTheme(builders: {
+        TargetPlatform.android: FadeForwardsPageTransitionsBuilder(),
+      }),
       dividerTheme: DividerThemeData(
         color: scheme.outlineVariant,
         thickness: 1,

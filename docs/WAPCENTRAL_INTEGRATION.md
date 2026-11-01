@@ -23,3 +23,6 @@ Config presence does not require every Firebase service. Use only services requi
 
 ## Architecture and validation
 Keep a single integration adapter/service boundary, explicit init/error state, safe no-content/offline fallback, documented placement IDs and premium suppression tests. Test offline, malformed/missing config, test mode, real promotion response, notification opt-in/denial/token refresh and no-media-upload guarantee.
+
+## WazApp implementation (updated)
+The guide is `WAPCentral_WazApp_Integration_Guide.md`. The four SDKs are path packages in the sibling `../WAPCentral/sdks/` checkout. Code lives in `lib/integrations/wapcentral/` (`ads/`, `notifications/`, `promo/`, `wap_startup.dart`, plus the original service-control gate). Keyed features need `--dart-define-from-file=dart_defines.json` (see `dart_defines.example.json`); without the key they are off and local features are unaffected. Placements: `home_native`, `saved_banner`; never in Private Folder, viewer, editors, permission setup, Settings or next to destructive actions. Verification status and blockers: `docs/audit/WAPCENTRAL_INTEGRATION_STATUS.md`.

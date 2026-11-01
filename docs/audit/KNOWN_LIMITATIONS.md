@@ -65,3 +65,25 @@
 
 ## Not yet verified (nothing has been verified on a device in this audit)
 All runtime behaviour; only static analysis and unit/widget tests were run on the host (see `BASELINE_AUDIT.md`).
+
+## Phase 6 additions
+- Only WhatsApp Business could be exercised on the test phone; the regular WhatsApp path uses the same code with the other package but is verified by host tests only.
+- Ads, notification feed/registration and promotions need `--dart-define=WAP_APP_KEY=...` (see `WAPCENTRAL_INTEGRATION_STATUS.md`); without it they are off. Nothing was exercised against the live endpoints with a key.
+- The WAP SDKs are path dependencies on `../WAPCentral/sdks/*`; a clone without that sibling folder will not build.
+- The first Gradle build with Firebase/AdMob takes ~7 minutes; one build failed once with a duplicate-class-entry error in firebase_core and passed after deleting its build directory.
+- Release builds/signing were NOT touched or run (owner instruction). Release/profile artifacts under `build/` pre-date this work.
+- MIUI blocks silent USB installs; each install needs the on-device "Install via USB" confirmation.
+
+## Phase 6 additions
+- Only WhatsApp Business could be exercised on the test phone; the regular WhatsApp path uses the same code with the other package and is verified by host tests only.
+- Ads, notification feed/registration and promotions need `--dart-define=WAP_APP_KEY=...` (see `WAPCENTRAL_INTEGRATION_STATUS.md`); without it they are off. Nothing was exercised against the live endpoints with a key.
+- The WAP SDKs are path dependencies on `../WAPCentral/sdks/*`; a clone without that sibling folder will not build.
+- The first Gradle build with Firebase/AdMob takes ~7 minutes; one build failed once with a duplicate-class-entry error in firebase_core and passed after deleting its build directory.
+- Release builds/signing were NOT touched or run (owner instruction). Release/profile artifacts under `build/` pre-date this work.
+- MIUI blocks silent USB installs; each install needs the on-device "Install via USB" confirmation.
+
+## Phase 7 additions
+- Contact-wise status grouping, contact names and profile photos are not possible with supported access (hash-named files without metadata; contacts live only in WhatsApp's private encrypted database). WazApp groups by day instead.
+- A status that exists in WhatsApp but has no file in the status folder cannot be listed; the cause (download timing) was not reproduced end to end and is worded as "may".
+- Detection depends on the two `<queries>` package entries; a differently named WhatsApp build (e.g. a cloned/dual app with another package name) is not detected.
+- Regular WhatsApp, Android 10-12 and 14+ were not available on the test phone.

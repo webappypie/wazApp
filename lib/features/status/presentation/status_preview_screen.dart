@@ -20,7 +20,8 @@ class StatusPreviewScreen extends ConsumerStatefulWidget {
   final StatusItem item;
 
   @override
-  ConsumerState<StatusPreviewScreen> createState() => _StatusPreviewScreenState();
+  ConsumerState<StatusPreviewScreen> createState() =>
+      _StatusPreviewScreenState();
 }
 
 class _StatusPreviewScreenState extends ConsumerState<StatusPreviewScreen> {
@@ -58,7 +59,12 @@ class _StatusPreviewScreenState extends ConsumerState<StatusPreviewScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final saved = ref.watch(savedSourceKeysProvider).value?.contains(widget.item.sourceKey) ?? false;
+    final saved =
+        ref
+            .watch(savedSourceKeysProvider)
+            .value
+            ?.contains(widget.item.sourceKey) ??
+        false;
     return Scaffold(
       backgroundColor: Colors.black,
       appBar: AppBar(
@@ -75,8 +81,9 @@ class _StatusPreviewScreenState extends ConsumerState<StatusPreviewScreen> {
             label: Text(saved ? 'Already saved' : 'Save'),
             onPressed: saved
                 ? null
-                : () => saveStatusesFlow(context, ref, [widget.item],
-                    onViewSaved: () => context.go(AppRoutes.saved)),
+                : () => saveStatusesFlow(context, ref, [
+                    widget.item,
+                  ], onViewSaved: () => context.go(AppRoutes.saved)),
           ),
         ),
       ),
@@ -85,29 +92,68 @@ class _StatusPreviewScreenState extends ConsumerState<StatusPreviewScreen> {
 
   Widget _content() {
     if (widget.item.kind == MediaKind.video) {
-      if (_videoFailed) return const Center(child: Text('This video cannot be played.', style: TextStyle(color: Colors.white)));
+      if (_videoFailed) {
+        return const Center(
+          child: Text(
+            'This video cannot be played.',
+            style: TextStyle(color: Colors.white),
+          ),
+        );
+      }
       final c = _video;
       if (c == null) return const Center(child: CircularProgressIndicator());
       return Center(
         child: GestureDetector(
           onTap: () => c.value.isPlaying ? c.pause() : c.play(),
-          child: AspectRatio(aspectRatio: c.value.aspectRatio, child: VideoPlayer(c)),
+          child: AspectRatio(
+            aspectRatio: c.value.aspectRatio,
+            child: VideoPlayer(c),
+          ),
         ),
       );
     }
-    return Consumer(builder: (context, ref, _) {
-      final bytes = ref.watch(_largeImageProvider(widget.item));
-      return bytes.when(
-        data: (b) => b == null
-            ? const Center(child: Text('This image cannot be shown.', style: TextStyle(color: Colors.white)))
-            : InteractiveViewer(child: Center(child: Image.memory(b, fit: BoxFit.contain))),
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (_, _) => const Center(child: Text('This image cannot be shown.', style: TextStyle(color: Colors.white))),
-      );
-    });
+    return Consumer(
+      builder: (context, ref, _) {
+        final bytes = ref.watch(_largeImageProvider(widget.item));
+        return bytes.when(
+          data: (b) => b == null
+              ? const Center(
+                  child: Text(
+                    'This image cannot be shown.',
+                    style: TextStyle(color: Colors.white),
+                  ),
+                )
+              : InteractiveViewer(
+                  child: Center(
+                    child: Image.memory(
+                      b,
+                      fit: BoxFit.contain,
+                      errorBuilder: (_, _, _) => const Icon(
+                        Icons.broken_image_outlined,
+                        size: 48,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                ),
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (_, _) => const Center(
+            child: Text(
+              'This image cannot be shown.',
+              style: TextStyle(color: Colors.white),
+            ),
+          ),
+        );
+      },
+    );
   }
 }
 
-final _largeImageProvider = FutureProvider.autoDispose.family((ref, StatusItem item) {
-  return ref.watch(mediaToolsProvider).thumbnail(item.uri, item.kind, size: 1600);
+final _largeImageProvider = FutureProvider.autoDispose.family((
+  ref,
+  StatusItem item,
+) {
+  return ref
+      .watch(mediaToolsProvider)
+      .thumbnail(item.uri, item.kind, size: 1600);
 });
